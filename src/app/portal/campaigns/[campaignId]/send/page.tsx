@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getSendPreparation, type FrozenRecipient, type SendAudienceRow } from "@/lib/portal-data";
 import { requirePortalContext } from "@/lib/portal-context";
 
-import { approveSend, dispatchSend } from "./actions";
+import { approveSend, dispatchSend, reconcileSend } from "./actions";
 
 const integer = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
 
@@ -121,6 +121,26 @@ export default async function SendPage({
                   {data.send.status === "approved"
                     ? "Dispatch approved audience"
                     : "Retry same provider batch"}
+                </button>
+              </form>
+            </section>
+          ) : null}
+          {data.send.provider_batch_id ? (
+            <section className="reconcile-strip">
+              <div>
+                <strong>Delivery results</strong>
+                <span>
+                  {integer.format(data.send.delivered_count)} delivered ·{" "}
+                  {integer.format(data.send.opened_count)} opened ·{" "}
+                  {integer.format(data.send.bounced_count)} bounced ·{" "}
+                  {integer.format(data.send.unsubscribed_count)} unsubscribed
+                </span>
+              </div>
+              <form action={reconcileSend}>
+                <input name="campaignId" type="hidden" value={data.campaign.id} />
+                <input name="sendId" type="hidden" value={data.send.id} />
+                <button className="button button-quiet" type="submit">
+                  Refresh provider results
                 </button>
               </form>
             </section>

@@ -52,11 +52,11 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 
 ## Provider reconciliation
 
-- [ ] TODO — Poll provider reports incrementally and safely after downtime.
-- [ ] TODO — Deduplicate events by provider event ID.
-- [ ] TODO — Delivered, bounced, opened, and unsubscribed facts converge under duplicate/out-of-order replay.
-- [ ] TODO — Bounce/unsubscribe/complaint outcomes update contactability conservatively.
-- [ ] TODO — Dashboard results derive from reconciled facts.
+- [x] PASS — Provider reports poll incrementally from a persisted opaque cursor and resume safely after downtime.
+- [x] PASS — Provider facts deduplicate by tenant/source/event ID, including duplicates within one page.
+- [x] PASS — Delivered, bounced, opened, and unsubscribed states converge under duplicate and out-of-order replay.
+- [x] PASS — Bounce/unsubscribe/complaint facts update channel contactability with conservative terminal precedence.
+- [x] PASS — Event-derived dashboard results query the same reconciled fact table and remain distinct from source reports.
 
 ## Public report
 

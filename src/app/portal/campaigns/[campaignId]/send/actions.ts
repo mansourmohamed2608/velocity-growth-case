@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requirePortalContext } from "@/lib/portal-context";
-import { dispatchClaimedBatch } from "@/lib/provider";
+import { dispatchClaimedBatch, fetchClaimedEventPage } from "@/lib/provider";
 import { createClient } from "@/lib/supabase/server";
 
 const approvalSchema = z.object({
@@ -80,4 +80,54 @@ export async function dispatchSend(formData: FormData) {
     );
 
   redirect(`/portal/campaigns/${parsed.data.campaignId}/send?dispatched=1`);
+}
+
+export async function reconcileSend(formData: FormData) {
+  const context = await requirePortalContext();
+  if (context.role !== "owner")
+    throw new Error("Owner role is required to refresh provider results.");
+  const parsed = dispatchSchema.safeParse({
+    campaignId: formData.get("campaignId"),
+    sendId: formData.get("sendId"),
+  });
+  if (!parsed.success) throw new Error("The reconciliation request was invalid.");
+
+  const supabase = await createClient();
+  const sendResult = await supabase
+    .from("campaign_sends")
+    .select("provider_batch_id,provider_cursor")
+    .eq("id", parsed.data.sendId)
+    .single();
+  if (sendResult.error || !sendResult.data.provider_batch_id)
+    throw new Error("This send has no provider batch to refresh.");
+
+  let cursor = sendResult.data.provider_cursor as string | null;
+  try {
+    for (let pageNumber = 0; pageNumber < 200; pageNumber += 1) {
+      const page = await fetchClaimedEventPage(sendResult.data.provider_batch_id, cursor);
+      const ingestResult = await supabase.rpc("ingest_provider_event_page", {
+        target_send_id: parsed.data.sendId,
+        event_page: page.events,
+        target_next_cursor: page.nextCursor,
+        target_has_more: page.hasMore,
+      });
+      if (ingestResult.error) throw new Error("A provider event page could not be stored safely.");
+      cursor = page.nextCursor ?? page.events.at(-1)?.event_id ?? cursor;
+      if (!page.hasMore) break;
+      if (!page.nextCursor) throw new Error("Provider returned another page without a cursor.");
+      if (pageNumber === 199) throw new Error("Provider report exceeded the safe page limit.");
+    }
+  } catch (error) {
+    const safeError =
+      error instanceof Error && error.message.startsWith("Provider report request failed with HTTP")
+        ? error.message
+        : "Provider results could not be fully reconciled; the saved cursor is safe to retry.";
+    await supabase.rpc("record_campaign_reconciliation_failure", {
+      target_send_id: parsed.data.sendId,
+      safe_error: safeError,
+    });
+    throw new Error(safeError);
+  }
+
+  redirect(`/portal/campaigns/${parsed.data.campaignId}/send?reconciled=1`);
 }

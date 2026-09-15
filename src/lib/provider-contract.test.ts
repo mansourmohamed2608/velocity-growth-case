@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   dispatchProviderBatch,
+  fetchProviderEventPage,
+  normalizeProviderEvent,
   type ClaimedDispatch,
   type ProviderTransport,
 } from "./provider-contract";
@@ -104,5 +106,61 @@ describe("dispatchProviderBatch", () => {
         transport,
       ),
     ).rejects.toThrow();
+  });
+});
+
+describe("provider event reports", () => {
+  it("normalizes documented events and preserves the opaque cursor", async () => {
+    const transport = vi.fn<ProviderTransport>(async () =>
+      Response.json({
+        events: [
+          {
+            event_id: "evt-2",
+            recipient: { external_id: "CT-000002" },
+            type: "opened",
+            timestamp: "2026-09-15T12:01:00Z",
+          },
+          {
+            id: "evt-1",
+            external_id: "CT-000001",
+            event_type: "delivered",
+            occurred_at: "2026-09-15T12:00:00Z",
+          },
+        ],
+        next_cursor: "evt-2",
+        has_more: true,
+      }),
+    );
+
+    const page = await fetchProviderEventPage(
+      {
+        baseUrl: "https://provider.example.test",
+        apiKey: "fixture-credential",
+        batchId: "batch/with spaces",
+        since: "evt-0",
+      },
+      transport,
+    );
+
+    expect(page.events.map((event) => [event.event_id, event.event_type])).toEqual([
+      ["evt-2", "opened"],
+      ["evt-1", "delivered"],
+    ]);
+    expect(page.nextCursor).toBe("evt-2");
+    expect(page.hasMore).toBe(true);
+    const [url] = transport.mock.calls[0];
+    expect(url).toBe(
+      "https://provider.example.test/v1/messages/batch%2Fwith%20spaces/events?since=evt-0",
+    );
+  });
+
+  it("fails closed when an event lacks a recipient identity", () => {
+    expect(() =>
+      normalizeProviderEvent({
+        event_id: "evt-1",
+        type: "delivered",
+        timestamp: "2026-09-15T12:00:00Z",
+      }),
+    ).toThrow("documented identifier");
   });
 });

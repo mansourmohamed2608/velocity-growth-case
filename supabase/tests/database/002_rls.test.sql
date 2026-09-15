@@ -1,6 +1,6 @@
 begin;
 
-select plan(43);
+select plan(49);
 
 insert into auth.users (id, email)
 values
@@ -186,6 +186,60 @@ select results_eq(
   array['submitted:1'::text],
   'recording the same provider result twice is idempotent'
 );
+select results_eq(
+  $$select result.inserted_events || ':' || result.delivered_count || ':' || result.opened_count
+    from public.campaign_sends send
+    cross join lateral public.ingest_provider_event_page(
+      send.id,
+      jsonb_build_array(
+        jsonb_build_object('event_id', 'evt-open', 'recipient_identifier', 'CT-900001', 'event_type', 'opened', 'occurred_at', '2026-09-15T12:05:00Z', 'raw_payload', '{}'::jsonb),
+        jsonb_build_object('event_id', 'evt-delivered', 'recipient_identifier', 'CT-900001', 'event_type', 'delivered', 'occurred_at', '2026-09-15T12:00:00Z', 'raw_payload', '{}'::jsonb),
+        jsonb_build_object('event_id', 'evt-open', 'recipient_identifier', 'CT-900001', 'event_type', 'opened', 'occurred_at', '2026-09-15T12:05:00Z', 'raw_payload', '{}'::jsonb)
+      ), null, false
+    ) result
+    where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  array['2:1:1'::text],
+  'out-of-order events and a same-page duplicate ingest idempotently'
+);
+select results_eq(
+  $$select result.inserted_events || ':' || result.bounced_count || ':' || result.unsubscribed_count
+    from public.campaign_sends send
+    cross join lateral public.ingest_provider_event_page(
+      send.id,
+      jsonb_build_array(
+        jsonb_build_object('event_id', 'evt-delivered', 'recipient_identifier', 'CT-900001', 'event_type', 'delivered', 'occurred_at', '2026-09-15T12:00:00Z', 'raw_payload', '{}'::jsonb),
+        jsonb_build_object('event_id', 'evt-bounced', 'recipient_identifier', 'CT-900001', 'event_type', 'bounced', 'occurred_at', '2026-09-15T12:10:00Z', 'raw_payload', '{}'::jsonb),
+        jsonb_build_object('event_id', 'evt-unsubscribed', 'recipient_identifier', 'CT-900001', 'event_type', 'unsubscribed', 'occurred_at', '2026-09-15T11:00:00Z', 'raw_payload', '{}'::jsonb)
+      ), 'evt-unsubscribed', false
+    ) result
+    where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  array['2:1:1'::text],
+  'late duplicated terminal facts converge without double counting'
+);
+select results_eq(
+  $$select status::text from public.campaign_send_recipients where contact_external_id = 'CT-900001'$$,
+  array['unsubscribed'::text],
+  'recipient state uses conservative terminal precedence, not arrival order'
+);
+select results_eq(
+  $$select email_status::text from public.contacts where external_id = 'CT-900001'$$,
+  array['unsubscribed'::text],
+  'provider unsubscribe updates future email contactability'
+);
+select results_eq(
+  $$select result.inserted_events || ':' || result.delivered_count || ':' || result.opened_count
+    from public.campaign_sends send
+    cross join lateral public.ingest_provider_event_page(
+      send.id,
+      jsonb_build_array(
+        jsonb_build_object('event_id', 'evt-open', 'recipient_identifier', 'CT-900001', 'event_type', 'opened', 'occurred_at', '2026-09-15T12:05:00Z', 'raw_payload', '{}'::jsonb),
+        jsonb_build_object('event_id', 'evt-delivered', 'recipient_identifier', 'CT-900001', 'event_type', 'delivered', 'occurred_at', '2026-09-15T12:00:00Z', 'raw_payload', '{}'::jsonb)
+      ), null, false
+    ) result
+    where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  array['0:1:1'::text],
+  'replaying a provider page inserts no duplicate events and keeps aggregates stable'
+);
 select throws_ok(
   $$select public.record_campaign_dispatch_result(
       send.id, 'different-batch', array['CT-900001'], array[]::text[]
@@ -277,6 +331,16 @@ select throws_ok(
   '42501',
   'owner role required',
   'analyst cannot claim an approved provider dispatch'
+);
+select throws_ok(
+  $$select public.ingest_provider_event_page(
+      send.id, '[]'::jsonb, null, false
+    )
+    from public.campaign_sends send
+    where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  '42501',
+  'owner role required',
+  'analyst cannot inject provider reconciliation facts'
 );
 
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);

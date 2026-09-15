@@ -922,6 +922,26 @@ td > span:not(.channel-pill, .soft-pill, .contactability, .status-label) {
 .dispatch-callout form {
   flex: 0 0 auto;
 }
+.reconcile-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 18px 22px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 253, 248, 0.7);
+}
+.reconcile-strip strong,
+.reconcile-strip span {
+  display: block;
+}
+.reconcile-strip span {
+  margin-top: 5px;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+}
 .permission-panel {
   max-width: 850px;
   padding: clamp(32px, 6vw, 72px);
@@ -1139,6 +1159,10 @@ td > span:not(.channel-pill, .soft-pill, .contactability, .status-label) {
   }
   .dispatch-callout .button {
     width: 100%;
+  }
+  .reconcile-strip {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 
