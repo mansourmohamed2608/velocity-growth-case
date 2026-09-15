@@ -22,6 +22,9 @@ coverage/
 # Employer-provided task files
 .task/
 
+# Local assignment/data analysis workspace
+.work/
+
 # Private submission information
 SUBMISSION_PRIVATE.md
 
