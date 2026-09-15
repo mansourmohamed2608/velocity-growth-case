@@ -16,18 +16,18 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 - [ ] TODO — All three brands live: Kilele Rides, Karoo Coaches, Marrakech Express.
 - [ ] TODO — Six authorized accounts: one owner and one analyst per brand.
 - [ ] TODO — Email/password and Google sign-in both work.
-- [ ] TODO — Unauthorized authenticated identities get no tenant access.
+- [x] PASS — Unauthorized authenticated identities get no tenant access (direct RLS and context-RPC regression tests).
 - [ ] TODO — Idempotently import all valid contacts, campaigns, events, send-log rows, and the Kilele delta.
 - [ ] TODO — Reject invalid rows and persist visible, actionable reasons.
 - [ ] TODO — Re-import leaves stable logical counts.
 
 ## Tenant security and roles
 
-- [ ] TODO — PostgreSQL RLS protects every exposed tenant-owned table.
-- [ ] TODO — Direct Supabase requests cannot cross tenants.
-- [ ] TODO — Guessed IDs, joins, missing frontend filters, and RPCs cannot cross tenants.
+- [x] PASS — PostgreSQL RLS protects every exposed tenant-owned table; report sessions have no client grants.
+- [x] PASS — Direct Supabase requests cannot cross tenants.
+- [x] PASS — Guessed IDs, joins, missing frontend filters, and RPCs cannot cross tenants.
 - [ ] TODO — Owners can send and publish; analysts are read-only.
-- [ ] TODO — At least one automated test fails if central tenant isolation is removed.
+- [x] PASS — The unfiltered three-tenant contact regression test fails if the central membership policy is removed.
 
 ## Portal
 

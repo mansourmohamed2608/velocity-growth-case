@@ -1,8 +1,25 @@
 import Link from "next/link";
 
+import { signInWithGoogle, signInWithPassword } from "./actions";
+
 export const metadata = { title: "Sign in" };
 
-export default function LoginPage() {
+const messages: Record<string, string> = {
+  "invalid-input": "Enter a valid email address and password.",
+  credentials: "Those credentials were not accepted.",
+  oauth: "Google sign-in could not be started. Please try again.",
+  callback: "The sign-in response could not be verified. Please try again.",
+  configuration: "Sign-in is temporarily unavailable because the app is not configured.",
+};
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const errorCode = (await searchParams).error;
+  const errorMessage = errorCode ? messages[errorCode] : undefined;
+
   return (
     <main className="auth-shell">
       <section className="auth-story">
@@ -23,19 +40,33 @@ export default function LoginPage() {
         <div className="auth-card">
           <p className="eyebrow">Welcome back</p>
           <h2 id="login-heading">Sign in to your workspace</h2>
-          <p className="muted">
-            Authentication will be connected in the next implementation phase.
-          </p>
-          <button className="button button-primary button-wide" type="button" disabled>
-            Continue with Google
-          </button>
+          <p className="muted">Use one of the six approved client-portal accounts.</p>
+          {errorMessage ? (
+            <p className="form-alert" role="alert">
+              {errorMessage}
+            </p>
+          ) : null}
+          <form action={signInWithGoogle}>
+            <button className="button button-primary button-wide" type="submit">
+              <span className="google-g" aria-hidden="true">
+                G
+              </span>
+              Continue with Google
+            </button>
+          </form>
           <div className="divider">
             <span>or</span>
           </div>
-          <fieldset disabled className="auth-fields">
+          <form action={signInWithPassword} className="auth-fields">
             <label>
               Email address
-              <input autoComplete="email" name="email" type="email" placeholder="you@company.com" />
+              <input
+                autoComplete="email"
+                name="email"
+                type="email"
+                placeholder="you@company.com"
+                required
+              />
             </label>
             <label>
               Password
@@ -44,12 +75,13 @@ export default function LoginPage() {
                 name="password"
                 type="password"
                 placeholder="••••••••"
+                required
               />
             </label>
             <button className="button button-dark button-wide" type="submit">
               Sign in
             </button>
-          </fieldset>
+          </form>
         </div>
       </section>
     </main>

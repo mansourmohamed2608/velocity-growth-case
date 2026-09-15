@@ -13,6 +13,12 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 
+CREATE SCHEMA IF NOT EXISTS "private";
+
+
+ALTER SCHEMA "private" OWNER TO "postgres";
+
+
 CREATE SCHEMA IF NOT EXISTS "public";
 
 
@@ -143,6 +149,68 @@ CREATE TYPE "public"."send_status" AS ENUM (
 ALTER TYPE "public"."send_status" OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "private"."is_brand_member"("target_brand_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select exists (
+    select 1
+    from public.brand_memberships membership
+    where membership.brand_id = target_brand_id
+      and membership.user_id = (select auth.uid())
+  );
+$$;
+
+
+ALTER FUNCTION "private"."is_brand_member"("target_brand_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "private"."is_brand_owner"("target_brand_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select exists (
+    select 1
+    from public.brand_memberships membership
+    where membership.brand_id = target_brand_id
+      and membership.user_id = (select auth.uid())
+      and membership.role = 'owner'
+  );
+$$;
+
+
+ALTER FUNCTION "private"."is_brand_owner"("target_brand_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."assert_brand_owner"("target_brand_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+begin
+  if not private.is_brand_owner(target_brand_id) then
+    raise exception 'owner role required' using errcode = '42501';
+  end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."assert_brand_owner"("target_brand_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."current_portal_context"() RETURNS TABLE("brand_id" "uuid", "brand_code" "text", "brand_name" "text", "role" "public"."portal_role")
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO ''
+    AS $$
+  select brand.id, brand.code, brand.name, membership.role
+  from public.brand_memberships membership
+  join public.brands brand on brand.id = membership.brand_id
+  where membership.user_id = (select auth.uid());
+$$;
+
+
+ALTER FUNCTION "public"."current_portal_context"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."protect_recipient_snapshot"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO ''
@@ -232,6 +300,8 @@ CREATE TABLE IF NOT EXISTS "public"."brand_memberships" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 
+ALTER TABLE ONLY "public"."brand_memberships" FORCE ROW LEVEL SECURITY;
+
 
 ALTER TABLE "public"."brand_memberships" OWNER TO "postgres";
 
@@ -249,6 +319,8 @@ CREATE TABLE IF NOT EXISTS "public"."brands" (
     CONSTRAINT "brands_name_check" CHECK (("btrim"("name") <> ''::"text")),
     CONSTRAINT "brands_time_zone_check" CHECK (("btrim"("time_zone") <> ''::"text"))
 );
+
+ALTER TABLE ONLY "public"."brands" FORCE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."brands" OWNER TO "postgres";
@@ -278,6 +350,8 @@ CREATE TABLE IF NOT EXISTS "public"."campaign_send_recipients" (
     CONSTRAINT "campaign_send_recipients_approved_snapshot_check" CHECK (("jsonb_typeof"("approved_snapshot") = 'object'::"text")),
     CONSTRAINT "campaign_send_recipients_destination_check" CHECK (("btrim"("destination") <> ''::"text"))
 );
+
+ALTER TABLE ONLY "public"."campaign_send_recipients" FORCE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."campaign_send_recipients" OWNER TO "postgres";
@@ -323,6 +397,8 @@ CREATE TABLE IF NOT EXISTS "public"."campaign_sends" (
     CONSTRAINT "campaign_sends_unsubscribed_count_check" CHECK (("unsubscribed_count" >= 0))
 );
 
+ALTER TABLE ONLY "public"."campaign_sends" FORCE ROW LEVEL SECURITY;
+
 
 ALTER TABLE "public"."campaign_sends" OWNER TO "postgres";
 
@@ -357,6 +433,8 @@ CREATE TABLE IF NOT EXISTS "public"."campaigns" (
     CONSTRAINT "campaigns_target_country_code_check" CHECK ((("target_country_code" IS NULL) OR ("target_country_code" ~ '^[A-Z]{2}$'::"text")))
 );
 
+ALTER TABLE ONLY "public"."campaigns" FORCE ROW LEVEL SECURITY;
+
 
 ALTER TABLE "public"."campaigns" OWNER TO "postgres";
 
@@ -390,6 +468,8 @@ CREATE TABLE IF NOT EXISTS "public"."contacts" (
     CONSTRAINT "contacts_phone_check" CHECK ((("phone" IS NULL) OR ("btrim"("phone") <> ''::"text")))
 );
 
+ALTER TABLE ONLY "public"."contacts" FORCE ROW LEVEL SECURITY;
+
 
 ALTER TABLE "public"."contacts" OWNER TO "postgres";
 
@@ -411,6 +491,8 @@ CREATE TABLE IF NOT EXISTS "public"."import_errors" (
     CONSTRAINT "import_errors_reason_check" CHECK (("btrim"("reason") <> ''::"text")),
     CONSTRAINT "import_errors_row_number_check" CHECK (("row_number" >= 2))
 );
+
+ALTER TABLE ONLY "public"."import_errors" FORCE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."import_errors" OWNER TO "postgres";
@@ -453,6 +535,8 @@ CREATE TABLE IF NOT EXISTS "public"."import_runs" (
     CONSTRAINT "import_runs_warning_rows_check" CHECK (("warning_rows" >= 0))
 );
 
+ALTER TABLE ONLY "public"."import_runs" FORCE ROW LEVEL SECURITY;
+
 
 ALTER TABLE "public"."import_runs" OWNER TO "postgres";
 
@@ -475,6 +559,8 @@ CREATE TABLE IF NOT EXISTS "public"."provider_events" (
     CONSTRAINT "provider_events_provider_event_id_check" CHECK (("btrim"("provider_event_id") <> ''::"text")),
     CONSTRAINT "provider_events_raw_payload_check" CHECK (("jsonb_typeof"("raw_payload") = 'object'::"text"))
 );
+
+ALTER TABLE ONLY "public"."provider_events" FORCE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."provider_events" OWNER TO "postgres";
@@ -508,6 +594,8 @@ CREATE TABLE IF NOT EXISTS "public"."published_reports" (
     CONSTRAINT "published_reports_token_digest_check" CHECK (("octet_length"("token_digest") = 32))
 );
 
+ALTER TABLE ONLY "public"."published_reports" FORCE ROW LEVEL SECURITY;
+
 
 ALTER TABLE "public"."published_reports" OWNER TO "postgres";
 
@@ -523,6 +611,8 @@ CREATE TABLE IF NOT EXISTS "public"."report_sessions" (
     CONSTRAINT "report_sessions_check" CHECK (("expires_at" > "created_at")),
     CONSTRAINT "report_sessions_session_digest_check" CHECK (("octet_length"("session_digest") = 32))
 );
+
+ALTER TABLE ONLY "public"."report_sessions" FORCE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."report_sessions" OWNER TO "postgres";
@@ -862,10 +952,109 @@ ALTER TABLE ONLY "public"."report_sessions"
 
 
 
+ALTER TABLE "public"."brand_memberships" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."brands" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "brands_member_select" ON "public"."brands" FOR SELECT TO "authenticated" USING (( SELECT "private"."is_brand_member"("brands"."id") AS "is_brand_member"));
+
+
+
+ALTER TABLE "public"."campaign_send_recipients" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "campaign_send_recipients_member_select" ON "public"."campaign_send_recipients" FOR SELECT TO "authenticated" USING (( SELECT "private"."is_brand_member"("campaign_send_recipients"."brand_id") AS "is_brand_member"));
+
+
+
+ALTER TABLE "public"."campaign_sends" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "campaign_sends_member_select" ON "public"."campaign_sends" FOR SELECT TO "authenticated" USING (( SELECT "private"."is_brand_member"("campaign_sends"."brand_id") AS "is_brand_member"));
+
+
+
+ALTER TABLE "public"."campaigns" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "campaigns_member_select" ON "public"."campaigns" FOR SELECT TO "authenticated" USING (( SELECT "private"."is_brand_member"("campaigns"."brand_id") AS "is_brand_member"));
+
+
+
+ALTER TABLE "public"."contacts" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "contacts_member_select" ON "public"."contacts" FOR SELECT TO "authenticated" USING (( SELECT "private"."is_brand_member"("contacts"."brand_id") AS "is_brand_member"));
+
+
+
+ALTER TABLE "public"."import_errors" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "import_errors_member_select" ON "public"."import_errors" FOR SELECT TO "authenticated" USING (( SELECT "private"."is_brand_member"("import_errors"."brand_id") AS "is_brand_member"));
+
+
+
+ALTER TABLE "public"."import_runs" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "import_runs_member_select" ON "public"."import_runs" FOR SELECT TO "authenticated" USING (( SELECT "private"."is_brand_member"("import_runs"."brand_id") AS "is_brand_member"));
+
+
+
+CREATE POLICY "memberships_self_select" ON "public"."brand_memberships" FOR SELECT TO "authenticated" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+
+
+
+ALTER TABLE "public"."provider_events" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "provider_events_member_select" ON "public"."provider_events" FOR SELECT TO "authenticated" USING (( SELECT "private"."is_brand_member"("provider_events"."brand_id") AS "is_brand_member"));
+
+
+
+ALTER TABLE "public"."published_reports" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "published_reports_member_select" ON "public"."published_reports" FOR SELECT TO "authenticated" USING (( SELECT "private"."is_brand_member"("published_reports"."brand_id") AS "is_brand_member"));
+
+
+
+ALTER TABLE "public"."report_sessions" ENABLE ROW LEVEL SECURITY;
+
+
+GRANT USAGE ON SCHEMA "private" TO "authenticated";
+
+
+
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "private"."is_brand_member"("target_brand_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "private"."is_brand_member"("target_brand_id" "uuid") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "private"."is_brand_owner"("target_brand_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "private"."is_brand_owner"("target_brand_id" "uuid") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."assert_brand_owner"("target_brand_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."assert_brand_owner"("target_brand_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."assert_brand_owner"("target_brand_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."current_portal_context"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."current_portal_context"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."current_portal_context"() TO "service_role";
 
 
 
@@ -887,45 +1076,38 @@ GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."brand_memberships" TO "anon";
-GRANT ALL ON TABLE "public"."brand_memberships" TO "authenticated";
 GRANT ALL ON TABLE "public"."brand_memberships" TO "service_role";
+GRANT SELECT ON TABLE "public"."brand_memberships" TO "authenticated";
 
 
 
-GRANT ALL ON TABLE "public"."brands" TO "anon";
-GRANT ALL ON TABLE "public"."brands" TO "authenticated";
 GRANT ALL ON TABLE "public"."brands" TO "service_role";
+GRANT SELECT ON TABLE "public"."brands" TO "authenticated";
 
 
 
-GRANT ALL ON TABLE "public"."campaign_send_recipients" TO "anon";
-GRANT ALL ON TABLE "public"."campaign_send_recipients" TO "authenticated";
 GRANT ALL ON TABLE "public"."campaign_send_recipients" TO "service_role";
+GRANT SELECT ON TABLE "public"."campaign_send_recipients" TO "authenticated";
 
 
 
-GRANT ALL ON TABLE "public"."campaign_sends" TO "anon";
-GRANT ALL ON TABLE "public"."campaign_sends" TO "authenticated";
 GRANT ALL ON TABLE "public"."campaign_sends" TO "service_role";
+GRANT SELECT ON TABLE "public"."campaign_sends" TO "authenticated";
 
 
 
-GRANT ALL ON TABLE "public"."campaigns" TO "anon";
-GRANT ALL ON TABLE "public"."campaigns" TO "authenticated";
 GRANT ALL ON TABLE "public"."campaigns" TO "service_role";
+GRANT SELECT ON TABLE "public"."campaigns" TO "authenticated";
 
 
 
-GRANT ALL ON TABLE "public"."contacts" TO "anon";
-GRANT ALL ON TABLE "public"."contacts" TO "authenticated";
 GRANT ALL ON TABLE "public"."contacts" TO "service_role";
+GRANT SELECT ON TABLE "public"."contacts" TO "authenticated";
 
 
 
-GRANT ALL ON TABLE "public"."import_errors" TO "anon";
-GRANT ALL ON TABLE "public"."import_errors" TO "authenticated";
 GRANT ALL ON TABLE "public"."import_errors" TO "service_role";
+GRANT SELECT ON TABLE "public"."import_errors" TO "authenticated";
 
 
 
@@ -935,15 +1117,13 @@ GRANT ALL ON SEQUENCE "public"."import_errors_id_seq" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."import_runs" TO "anon";
-GRANT ALL ON TABLE "public"."import_runs" TO "authenticated";
 GRANT ALL ON TABLE "public"."import_runs" TO "service_role";
+GRANT SELECT ON TABLE "public"."import_runs" TO "authenticated";
 
 
 
-GRANT ALL ON TABLE "public"."provider_events" TO "anon";
-GRANT ALL ON TABLE "public"."provider_events" TO "authenticated";
 GRANT ALL ON TABLE "public"."provider_events" TO "service_role";
+GRANT SELECT ON TABLE "public"."provider_events" TO "authenticated";
 
 
 
@@ -953,14 +1133,11 @@ GRANT ALL ON SEQUENCE "public"."provider_events_id_seq" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."published_reports" TO "anon";
-GRANT ALL ON TABLE "public"."published_reports" TO "authenticated";
 GRANT ALL ON TABLE "public"."published_reports" TO "service_role";
+GRANT SELECT ON TABLE "public"."published_reports" TO "authenticated";
 
 
 
-GRANT ALL ON TABLE "public"."report_sessions" TO "anon";
-GRANT ALL ON TABLE "public"."report_sessions" TO "authenticated";
 GRANT ALL ON TABLE "public"."report_sessions" TO "service_role";
 
 
