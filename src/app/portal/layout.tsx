@@ -18,8 +18,8 @@ export default async function PortalLayout({ children }: { children: React.React
         </Link>
         <nav aria-label="Portal navigation" className="portal-nav">
           <Link href="/portal">Dashboard</Link>
-          <span aria-disabled="true">Contacts</span>
-          <span aria-disabled="true">Campaigns</span>
+          <Link href="/portal/contacts">Contacts</Link>
+          <Link href="/portal/campaigns">Campaigns</Link>
         </nav>
         <form action={signOut}>
           <button className="button button-quiet" type="submit">

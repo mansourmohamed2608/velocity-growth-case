@@ -1,6 +1,6 @@
 begin;
 
-select plan(22);
+select plan(27);
 
 insert into auth.users (id, email)
 values
@@ -82,6 +82,25 @@ select lives_ok(
   $$select public.assert_brand_owner('11111111-1111-4111-8111-111111111111')$$,
   'owner authorization RPC accepts the matching owner'
 );
+select ok(
+  (select total_customers = (select count(*) from public.contacts)
+   from public.portal_dashboard_summary()),
+  'dashboard aggregate sees exactly the RLS-visible contact set'
+);
+select results_eq(
+  $$select external_id from public.portal_contacts_page('Kilele Contact', 25, 0)$$,
+  array['CT-900001'::text],
+  'contact pagination returns a matching same-tenant contact'
+);
+select results_eq(
+  $$select public.portal_contacts_count(null)$$,
+  $$select count(*)::bigint from public.contacts$$,
+  'contact count matches the complete RLS-visible result set'
+);
+select is_empty(
+  $$select * from public.portal_campaign_performance(100) where external_id = 'KAR-TEST'$$,
+  'campaign performance cannot expose a foreign campaign'
+);
 select throws_ok(
   $$select public.assert_brand_owner('22222222-2222-4222-8222-222222222222')$$,
   '42501',
@@ -159,6 +178,11 @@ select is_empty(
 select is_empty(
   $$select * from public.current_portal_context()$$,
   'unknown authenticated user gets no portal context'
+);
+select results_eq(
+  $$select total_customers from public.portal_dashboard_summary()$$,
+  array[0::bigint],
+  'unknown authenticated user receives a zero-contact aggregate rather than tenant data'
 );
 
 reset role;

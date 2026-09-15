@@ -18,7 +18,7 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 - [ ] TODO — Email/password and Google sign-in both work.
 - [x] PASS — Unauthorized authenticated identities get no tenant access (direct RLS and context-RPC regression tests).
 - [x] PASS — Idempotently import all valid contacts, campaigns, events, send-log rows, and the Kilele delta.
-- [ ] TODO — Invalid rows and actionable reasons persist; product visibility is completed with the portal UI.
+- [x] PASS — Invalid rows and actionable reasons persist and are visible in the dashboard’s source-health panel.
 - [x] PASS — Two clean full imports leave identical logical counts and zero duplicate natural keys.
 
 ## Tenant security and roles
@@ -31,13 +31,13 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 
 ## Portal
 
-- [ ] TODO — Dashboard shows total customers and contactable customers.
-- [ ] TODO — Dashboard shows daily signups for the latest 30-day data window.
-- [ ] TODO — Dashboard shows per-campaign performance.
-- [ ] TODO — Metric definitions and ambiguity are displayed.
-- [ ] TODO — Contacts are server-paginated and usable for the largest brand.
-- [ ] TODO — Campaign history/results and role-appropriate actions work.
-- [ ] TODO — Loading, empty, error, and permission-denied states are honest.
+- [x] PASS — Dashboard shows SQL-reconciled total customers and derived contactable customers.
+- [x] PASS — Dashboard shows daily signups for the 30-day window ending at the tenant’s latest data date.
+- [x] PASS — Dashboard shows bounded per-campaign reported and event-derived performance.
+- [x] PASS — Metric definitions and source ambiguity are displayed without silently substituting values.
+- [x] PASS — Contacts use bounded server/database pagination, exact counts, and server-side search.
+- [ ] TODO — Campaign history/results work; owner send and analyst denial complete with the safe-send workflow.
+- [x] PASS — Loading, empty, query-error, and permission-denied states are explicit and do not infer zeros.
 - [ ] TODO — Phone and laptop layouts are usable and accessible.
 
 ## Safe sending

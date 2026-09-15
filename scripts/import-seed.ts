@@ -271,9 +271,20 @@ async function importCampaigns(
   }
 
   await sql.begin(async (transaction) => {
-    const values = [...campaigns.values()].map(({ parent_external_id: _, ...campaign }) => ({
+    const values = [...campaigns.values()].map((campaign) => ({
       brand_id: brandId,
-      ...campaign,
+      external_id: campaign.external_id,
+      name: campaign.name,
+      channel: campaign.channel,
+      target_country_code: campaign.target_country_code,
+      reported_sent: campaign.reported_sent,
+      reported_delivered: campaign.reported_delivered,
+      reported_bounced: campaign.reported_bounced,
+      reported_opens: campaign.reported_opens,
+      reported_clicks: campaign.reported_clicks,
+      spend: campaign.spend,
+      sent_at: campaign.sent_at,
+      send_local_time: campaign.send_local_time,
     }));
     for (const batch of chunk(values, 500)) {
       await transaction`
