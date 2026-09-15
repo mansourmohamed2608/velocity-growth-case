@@ -75,20 +75,33 @@ export default async function CampaignsPage() {
                     </td>
                     <td>{money.format(Number(campaign.spend))}</td>
                     <td>
-                      {campaign.send_status ? (
-                        <Link className="text-link" href={`/portal/campaigns/${campaign.id}/send`}>
-                          View {campaign.send_status}
-                        </Link>
-                      ) : context.role === "owner" ? (
-                        <Link
-                          className="button button-dark"
-                          href={`/portal/campaigns/${campaign.id}/send`}
-                        >
-                          Prepare send
-                        </Link>
-                      ) : (
-                        <span className="read-only-label">Read only</span>
-                      )}
+                      <div className="campaign-actions">
+                        {campaign.send_status ? (
+                          <Link
+                            className="text-link"
+                            href={`/portal/campaigns/${campaign.id}/send`}
+                          >
+                            View {campaign.send_status}
+                          </Link>
+                        ) : context.role === "owner" ? (
+                          <Link
+                            className="button button-dark"
+                            href={`/portal/campaigns/${campaign.id}/send`}
+                          >
+                            Prepare send
+                          </Link>
+                        ) : (
+                          <span className="read-only-label">Read only</span>
+                        )}
+                        {context.role === "owner" ? (
+                          <Link
+                            className="text-link"
+                            href={`/portal/campaigns/${campaign.id}/report`}
+                          >
+                            Publish report
+                          </Link>
+                        ) : null}
+                      </div>
                     </td>
                   </tr>
                 ))}

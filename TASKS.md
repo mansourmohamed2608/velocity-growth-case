@@ -60,11 +60,11 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 
 ## Public report
 
-- [ ] TODO — Owner can publish exactly one campaign using an opaque random token.
-- [ ] TODO — Password is strongly hashed and checked server-side.
-- [ ] TODO — Limited HTTP-only report session exposes only the bound campaign summary.
-- [ ] TODO — Wrong/modified/guessed tokens, campaign substitution, enumeration, and tenant pivot fail.
-- [ ] TODO — Report access cannot become portal access.
+- [x] PASS — Owner can publish or rotate exactly one campaign using a 256-bit opaque random token stored only as a digest.
+- [x] PASS — Report passwords are bcrypt-hashed at cost 12 and verified only inside a security-definer database function.
+- [x] PASS — A one-hour, path-bound HTTP-only report session exposes only the bound campaign summary RPC.
+- [x] PASS — Wrong passwords, modified tokens, old sessions, campaign substitution, and tenant/customer pivots fail closed.
+- [x] PASS — Report access uses no Supabase Auth identity and cannot become portal access.
 
 ## Verification, deployment, and submission
 

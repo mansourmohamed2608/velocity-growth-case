@@ -1,6 +1,6 @@
 begin;
 
-select plan(49);
+select plan(60);
 
 insert into auth.users (id, email)
 values
@@ -240,6 +240,83 @@ select results_eq(
   array['0:1:1'::text],
   'replaying a provider page inserts no duplicate events and keeps aggregates stable'
 );
+select lives_ok(
+  $$select public.publish_campaign_report(
+    'b1111111-1111-4111-8111-111111111111',
+    extensions.digest('public-token-one', 'sha256'),
+    'correct horse battery staple'
+  )$$,
+  'owner can publish one campaign with a token digest and strong password'
+);
+select ok(
+  (select password_hash <> 'correct horse battery staple' and password_hash like '$2%'
+   from public.published_reports where campaign_id = 'b1111111-1111-4111-8111-111111111111'),
+  'report password is stored only as a bcrypt hash'
+);
+select results_eq(
+  $$select public.create_public_report_session(
+    extensions.digest('public-token-one', 'sha256'),
+    'wrong password',
+    extensions.digest('wrong-password-session', 'sha256')
+  )$$,
+  array[false],
+  'wrong report password creates no session'
+);
+select results_eq(
+  $$select public.create_public_report_session(
+    extensions.digest('modified-token', 'sha256'),
+    'correct horse battery staple',
+    extensions.digest('modified-token-session', 'sha256')
+  )$$,
+  array[false],
+  'modified or guessed report token creates no session'
+);
+select results_eq(
+  $$select public.create_public_report_session(
+    extensions.digest('public-token-one', 'sha256'),
+    'correct horse battery staple',
+    extensions.digest('valid-report-session-one', 'sha256')
+  )$$,
+  array[true],
+  'correct token and password create a limited report session'
+);
+select results_eq(
+  $$select campaign_external_id from public.public_campaign_report(
+    extensions.digest('valid-report-session-one', 'sha256')
+  )$$,
+  array['KIL-TEST'::text],
+  'report session returns exactly its explicitly bound campaign'
+);
+select lives_ok(
+  $$select public.publish_campaign_report(
+    'b1111111-1111-4111-8111-111111111111',
+    extensions.digest('public-token-two', 'sha256'),
+    'a different strong password'
+  )$$,
+  'owner can rotate campaign report access'
+);
+select is_empty(
+  $$select * from public.public_campaign_report(
+    extensions.digest('valid-report-session-one', 'sha256')
+  )$$,
+  'rotating a report invalidates every prior limited session'
+);
+select results_eq(
+  $$select public.create_public_report_session(
+    extensions.digest('public-token-two', 'sha256'),
+    'a different strong password',
+    extensions.digest('valid-report-session-two', 'sha256')
+  )$$,
+  array[true],
+  'rotated token and password create a new limited session'
+);
+select results_eq(
+  $$select brand_name || ':' || campaign_external_id from public.public_campaign_report(
+    extensions.digest('valid-report-session-two', 'sha256')
+  )$$,
+  array['Kilele Rides:KIL-TEST'::text],
+  'rotated report remains bound to one brand and one campaign'
+);
 select throws_ok(
   $$select public.record_campaign_dispatch_result(
       send.id, 'different-batch', array['CT-900001'], array[]::text[]
@@ -341,6 +418,16 @@ select throws_ok(
   '42501',
   'owner role required',
   'analyst cannot inject provider reconciliation facts'
+);
+select throws_ok(
+  $$select public.publish_campaign_report(
+    'b1111111-1111-4111-8111-111111111111',
+    extensions.digest('analyst-token', 'sha256'),
+    'analyst cannot publish this'
+  )$$,
+  '42501',
+  'owner role required',
+  'analyst cannot publish or rotate a public report'
 );
 
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);
