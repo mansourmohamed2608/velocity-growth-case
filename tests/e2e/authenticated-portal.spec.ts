@@ -48,7 +48,7 @@ test("owner can navigate bounded data and preview a send without dispatching", a
   await expect(page.getByText(/12,406 contacts/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Next →" })).toBeVisible();
 
-  await page.getByRole("link", { name: "Campaigns" }).click();
+  await page.getByRole("link", { name: "Campaigns", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Campaigns", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Prepare send" }).first().click();
   await expect(page.getByText("Exact eligible audience")).toBeVisible();
@@ -64,7 +64,7 @@ test("analyst sees read-only campaigns and no send or publication action", async
     (account) => account.brandCode === "KAROO" && account.role === "analyst",
   )!;
   await signIn(page, analyst.email, analyst.password);
-  await page.getByRole("link", { name: "Campaigns" }).click();
+  await page.getByRole("link", { name: "Campaigns", exact: true }).click();
   await expect(page.getByText("Analyst · read-only access")).toBeVisible();
   await expect(page.getByRole("link", { name: "Prepare send" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Publish report" })).toHaveCount(0);
@@ -82,7 +82,7 @@ test("largest production tenant can load campaign metrics and an exact send prev
     (account) => account.brandCode === "KILELE" && account.role === "owner",
   )!;
   await signIn(page, owner.email, owner.password);
-  await page.getByRole("link", { name: "Campaigns" }).click();
+  await page.getByRole("link", { name: "Campaigns", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Campaigns", exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Prepare send" }).first().click();
   await expect(page.getByText("Exact eligible audience")).toBeVisible();
