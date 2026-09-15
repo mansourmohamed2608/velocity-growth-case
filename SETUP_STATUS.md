@@ -1,6 +1,6 @@
 # Velocity Growth Case - Setup Checkpoint
 
-Date: 15 Sep 2026
+Date: 16 Sep 2026
 
 ## Completed
 
@@ -48,21 +48,22 @@ Date: 15 Sep 2026
 
 ## Current checkpoint
 
-- Reboot completed.
-- WSL 2 and Docker Desktop are working.
-- Docker Engine and required local Supabase services are healthy.
-- GitHub CLI is authenticated and `origin` targets the existing public repository.
-- Vercel and hosted Supabase/Google provider setup are reported complete; production integration remains to be verified.
-- Assignment, seed data, and provider discovery completed. See `TASKS.md` and `DATA_NOTES.md`.
+- Full application, migrations, seed import, RLS, role accounts, provider adapter, reconciliation, and secure reports are implemented.
+- Local clean reset, 77 database/RLS assertions, two stable imports, concurrency checks, build, and browser suites pass.
+- Hosted Supabase migrations/data and six role accounts are deployed and verified.
+- Production is live at `https://velocity-growth-case.vercel.app`.
+- Supabase Site URL and redirect allow-list target production; the Google OAuth handoff reaches Google's configured authorization flow.
+- Production email/password role matrix, largest-tenant queries/send preview, phone layout, direct unknown-user isolation, and public report password checks pass.
+- Git history is pushed to the existing public repository.
 
 ## Guardrails
 
-- Do not run npx supabase db push.
 - Do not manually create database tables.
 - Do not expose or commit secrets.
-- Do not create six portal users manually yet.
 - Do not make real provider sends during automated tests.
 
-## Next implementation phase
+## Human-gated final actions
 
-Application scaffold, followed by authoritative migrations and local database tests.
+- Complete one Google consent/login using the permitted candidate-controlled account.
+- Explicitly approve or decline one real provider dispatch; no sandbox is documented.
+- Confirm earliest start date and notice period for the submission email.

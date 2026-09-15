@@ -21,6 +21,23 @@ test("login exposes both labeled authentication methods", async ({ page }) => {
   await expectNoHorizontalOverflow(page);
 });
 
+test("production Google sign-in reaches the configured Google authorization flow", async ({
+  page,
+}, testInfo) => {
+  const baseUrl = String(testInfo.project.use.baseURL ?? "");
+  test.skip(
+    testInfo.project.name !== "desktop" || !baseUrl.startsWith("https://"),
+    "The hosted OAuth handoff runs once against production.",
+  );
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Continue with Google" }).click();
+  await page.waitForURL((url) => url.hostname === "accounts.google.com");
+  const authorizationUrl = new URL(page.url());
+  expect(authorizationUrl.searchParams.get("redirect_uri")).toBe(
+    "https://phtafctxyabkvqlcsulz.supabase.co/auth/v1/callback",
+  );
+});
+
 test("anonymous portal access redirects to login", async ({ page }) => {
   await page.goto("/portal");
   await expect(page).toHaveURL(/\/login$/);

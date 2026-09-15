@@ -37,3 +37,9 @@
 ## D-009 — No real messages in automated validation
 
 **Decision:** Provider requests use an injectable transport in tests. Production dispatch is enabled only after audience and idempotency verification. The employer provider has no documented sandbox.
+
+## D-010 — High-volume reads resolve the tenant before aggregation
+
+**Decision:** Portal aggregates resolve the authenticated membership to one tenant key before touching high-volume tables. Campaign performance uses a covering event index and a security-definer function with an explicit caller-tenant predicate; execute permission remains authenticated-only and adversarial RPC tests prove it cannot cross tenants.
+
+**Why:** Per-row RLS helper evaluation over Kilele's event volume exceeded the hosted statement timeout. The explicit predicate preserves the authorization invariant while making the unique-contact aggregate bounded in production.

@@ -12,9 +12,9 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 
 ## Application and data
 
-- [ ] TODO — Public, responsive production web application.
-- [ ] TODO — All three brands live: Kilele Rides, Karoo Coaches, Marrakech Express.
-- [ ] TODO — Six authorized accounts: one owner and one analyst per brand.
+- [x] PASS — Public, responsive production web application at `https://velocity-growth-case.vercel.app`.
+- [x] PASS — All three brands live: Kilele Rides, Karoo Coaches, Marrakech Express.
+- [x] PASS — Six authorized production accounts: one owner and one analyst per brand.
 - [ ] TODO — Email/password works for all six local accounts; Google sign-in still needs a production browser check.
 - [x] PASS — Unauthorized authenticated identities get no tenant access (direct RLS and context-RPC regression tests).
 - [x] PASS — Idempotently import all valid contacts, campaigns, events, send-log rows, and the Kilele delta.
@@ -70,11 +70,17 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 
 - [x] PASS — Format, lint, typecheck, unit, database, RLS, integration, and E2E checks pass.
 - [x] PASS — Fresh local migration/reset and two imports reproduce stable counts.
-- [ ] TODO — Secret scan covers working tree, Git history, and browser bundle.
-- [ ] TODO — Meaningful commit history pushed to the existing public GitHub repository.
-- [ ] TODO — Migrations/functions/data deployed to hosted project `phtafctxyabkvqlcsulz`.
-- [ ] TODO — Production app deployed with correct Supabase/Google redirect configuration.
-- [ ] TODO — Production smoke and direct restricted-user Supabase isolation tests pass.
-- [ ] TODO — `schema.sql`, `README.md`, `SUBMISSION.md`, and private credentials are complete.
-- [ ] TODO — Employer-requested note is at most 300 words and answers all four questions.
+- [x] PASS — Secret scan covers working tree, Git history, and browser bundle; final rerun remains in the command gate.
+- [x] PASS — Meaningful commit history pushed to the existing public GitHub repository.
+- [x] PASS — Migrations/functions/data deployed and independently verified on hosted project `phtafctxyabkvqlcsulz`.
+- [x] PASS — Production app deployed with the exact Supabase Site URL/callback allow-list and existing Google provider.
+- [x] PASS — Production smoke and direct restricted-user Supabase isolation tests pass.
+- [ ] TODO — `schema.sql`, `README.md`, `SUBMISSION.md`, and private credentials exist; two candidate availability fields await confirmation.
+- [x] PASS — Employer-requested note is under 300 words and answers all four questions.
 - [ ] TODO — Final requirement and security audits pass with a clean pushed worktree.
+
+## Human-gated completion
+
+- [ ] TODO — Candidate completes one production Google consent/login with the permitted Google identity.
+- [ ] TODO — Candidate explicitly approves one real provider dispatch; no sandbox is documented, so automation will not create the side effect without approval.
+- [ ] TODO — Candidate confirms earliest start date and notice period for the submission email.

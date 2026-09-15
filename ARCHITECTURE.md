@@ -12,14 +12,14 @@ Next.js portal ------------------------------+
 Supabase PostgREST / RPC                     v
   | PostgreSQL RLS + membership checks   Public report routes
   v                                          |
-PostgreSQL <---- trusted Edge Functions -----+
+PostgreSQL <---- trusted Next.js server -----+
                     |
                     | server-only API key + stable idempotency key
                     v
              Velocity Dispatcher
 ```
 
-The browser receives only the Supabase project URL and publishable key. PostgreSQL RLS is always authoritative. Provider and privileged Supabase credentials exist only in trusted server/Edge Function environments.
+The browser receives only the Supabase project URL and publishable key. PostgreSQL RLS is always authoritative. The provider credential exists only in the trusted Vercel server runtime; the deployed application does not need a Supabase service-role key.
 
 ## Tenant model
 
