@@ -20,7 +20,9 @@
     "db:test": "supabase test db",
     "data:import": "tsx scripts/import-seed.ts",
     "data:verify": "tsx scripts/verify-import.ts",
-    "test:concurrency": "tsx scripts/verify-send-concurrency.ts"
+    "test:concurrency": "tsx scripts/verify-send-concurrency.ts",
+    "credentials:generate": "tsx scripts/generate-portal-credentials.ts",
+    "users:provision": "tsx scripts/provision-portal-users.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

@@ -15,7 +15,7 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 - [ ] TODO — Public, responsive production web application.
 - [ ] TODO — All three brands live: Kilele Rides, Karoo Coaches, Marrakech Express.
 - [ ] TODO — Six authorized accounts: one owner and one analyst per brand.
-- [ ] TODO — Email/password and Google sign-in both work.
+- [ ] TODO — Email/password works for all six local accounts; Google sign-in still needs a production browser check.
 - [x] PASS — Unauthorized authenticated identities get no tenant access (direct RLS and context-RPC regression tests).
 - [x] PASS — Idempotently import all valid contacts, campaigns, events, send-log rows, and the Kilele delta.
 - [x] PASS — Invalid rows and actionable reasons persist and are visible in the dashboard’s source-health panel.
@@ -26,7 +26,7 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 - [x] PASS — PostgreSQL RLS protects every exposed tenant-owned table; report sessions have no client grants.
 - [x] PASS — Direct Supabase requests cannot cross tenants.
 - [x] PASS — Guessed IDs, joins, missing frontend filters, and RPCs cannot cross tenants.
-- [ ] TODO — Owners can send and publish; analysts are read-only.
+- [x] PASS — Owners can send and publish; analysts are read-only (database authorization and authenticated browser checks).
 - [x] PASS — The unfiltered three-tenant contact regression test fails if the central membership policy is removed.
 
 ## Portal
@@ -38,7 +38,7 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 - [x] PASS — Contacts use bounded server/database pagination, exact counts, and server-side search.
 - [x] PASS — Campaign history/results and owner-only audience approval work; analysts see read-only controls.
 - [x] PASS — Loading, empty, query-error, and permission-denied states are explicit and do not infer zeros.
-- [ ] TODO — Phone and laptop layouts are usable and accessible.
+- [x] PASS — Phone and laptop layouts pass authenticated and public browser checks at 390 px and 1440 px.
 
 ## Safe sending
 
@@ -68,8 +68,8 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 
 ## Verification, deployment, and submission
 
-- [ ] TODO — Format, lint, typecheck, unit, database, RLS, integration, and E2E checks pass.
-- [ ] TODO — Fresh local migration/reset and two imports reproduce stable counts.
+- [x] PASS — Format, lint, typecheck, unit, database, RLS, integration, and E2E checks pass.
+- [x] PASS — Fresh local migration/reset and two imports reproduce stable counts.
 - [ ] TODO — Secret scan covers working tree, Git history, and browser bundle.
 - [ ] TODO — Meaningful commit history pushed to the existing public GitHub repository.
 - [ ] TODO — Migrations/functions/data deployed to hosted project `phtafctxyabkvqlcsulz`.
