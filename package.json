@@ -2,6 +2,7 @@
   "name": "velocity-growth-case",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
@@ -12,17 +13,19 @@
     "format:write": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "e2e": "playwright test",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
     "data:import": "tsx scripts/import-seed.ts",
-    "data:verify": "tsx scripts/verify-import.ts"
+    "data:verify": "tsx scripts/verify-import.ts",
+    "test:concurrency": "tsx scripts/verify-send-concurrency.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.116.0",
-    "csv-parse": "6.1.0",
+    "csv-parse": "^7.0.2",
     "iconv-lite": "0.7.0",
     "next": "16.3.5",
     "postgres": "3.4.7",
@@ -31,10 +34,11 @@
     "zod": "4.1.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "24.10.0",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
-    "@vitest/coverage-v8": "4.0.7",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "9.39.1",
     "eslint-config-next": "16.3.5",
     "jsdom": "27.1.0",
@@ -42,7 +46,7 @@
     "supabase": "2.117.0",
     "tsx": "4.20.6",
     "typescript": "5.9.3",
-    "vitest": "4.0.7"
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=20.9.0"
