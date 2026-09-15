@@ -205,7 +205,7 @@ async function importContacts(
 
   await sql.begin(async (transaction) => {
     const values = [...contacts.values()].map((contact) => ({ brand_id: brandId, ...contact }));
-    for (const batch of chunk(values, 500)) {
+    for (const batch of chunk(values, 2_000)) {
       await transaction`
         insert into public.contacts ${transaction(
           batch,
@@ -286,7 +286,7 @@ async function importCampaigns(
       sent_at: campaign.sent_at,
       send_local_time: campaign.send_local_time,
     }));
-    for (const batch of chunk(values, 500)) {
+    for (const batch of chunk(values, 2_000)) {
       await transaction`
         insert into public.campaigns ${transaction(
           batch,
@@ -414,7 +414,7 @@ async function importEvents(
       occurred_at: event.occurred_at,
       raw_payload: event.raw_payload,
     }));
-    for (const batch of chunk(values, 750)) {
+    for (const batch of chunk(values, 2_500)) {
       await transaction`
         insert into public.provider_events ${transaction(
           batch,
@@ -540,7 +540,21 @@ async function main() {
   const seedDir = path.resolve(process.env.SOURCE_DATA_DIR ?? ".work/seed");
   const databaseUrl =
     process.env.DATABASE_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
-  await Promise.all(files.map((file) => access(path.join(seedDir, file.filename))));
+  const requestedFiles = new Set(
+    (process.env.SOURCE_FILES ?? "")
+      .split(",")
+      .map((filename) => filename.trim())
+      .filter(Boolean),
+  );
+  const selectedFiles = requestedFiles.size
+    ? files.filter((file) => requestedFiles.has(file.filename))
+    : files;
+  const unknownFiles = [...requestedFiles].filter(
+    (filename) => !files.some((file) => file.filename === filename),
+  );
+  if (unknownFiles.length)
+    throw new Error(`Unknown source file selection: ${unknownFiles.join(", ")}`);
+  await Promise.all(selectedFiles.map((file) => access(path.join(seedDir, file.filename))));
 
   const sql = postgres(databaseUrl, { max: 4, onnotice: () => undefined });
   let hasImporterLock = false;
@@ -562,7 +576,7 @@ async function main() {
       { id: string; code: BrandCode }[]
     >`select id, code from public.brands`;
     const brands = new Map(brandRows.map((brand) => [brand.code, brand.id]));
-    for (const config of files) {
+    for (const config of selectedFiles) {
       const filePath = path.join(seedDir, config.filename);
       const brandId = brands.get(config.brand);
       if (!brandId) throw new Error(`Missing brand ${config.brand}`);

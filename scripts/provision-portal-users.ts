@@ -114,6 +114,12 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : "Portal user provisioning failed");
+  const safeMessage =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null && "message" in error
+        ? String(error.message)
+        : "Portal user provisioning failed";
+  console.error(safeMessage);
   process.exitCode = 1;
 });
