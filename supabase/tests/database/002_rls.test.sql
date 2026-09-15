@@ -1,6 +1,6 @@
 begin;
 
-select plan(36);
+select plan(43);
 
 insert into auth.users (id, email)
 values
@@ -154,6 +154,55 @@ select results_eq(
   array['kilele@example.test'::text],
   'later contact changes do not alter the historical approval snapshot'
 );
+select results_eq(
+  $$select public.claim_campaign_dispatch(send.id)->>'recipient_count'
+    from public.campaign_sends send where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  array['1'::text],
+  'dispatch claim returns the complete frozen audience payload'
+);
+select results_eq(
+  $$select public.claim_campaign_dispatch(send.id)->>'recipient_count'
+    from public.campaign_sends send where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  array['1'::text],
+  'an interrupted dispatch can reclaim the same immutable payload'
+);
+select results_eq(
+  $$select result.status::text || ':' || result.accepted_count || ':' || result.rejected_count
+    from public.campaign_sends send
+    cross join lateral public.record_campaign_dispatch_result(
+      send.id, 'batch-test-1', array['CT-900001'], array[]::text[]
+    ) result
+    where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  array['submitted:1:0'::text],
+  'provider acceptance records the batch and per-recipient progress'
+);
+select results_eq(
+  $$select result.status::text || ':' || result.accepted_count
+    from public.campaign_sends send
+    cross join lateral public.record_campaign_dispatch_result(
+      send.id, 'batch-test-1', array['CT-900001'], array[]::text[]
+    ) result
+    where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  array['submitted:1'::text],
+  'recording the same provider result twice is idempotent'
+);
+select throws_ok(
+  $$select public.record_campaign_dispatch_result(
+      send.id, 'different-batch', array['CT-900001'], array[]::text[]
+    )
+    from public.campaign_sends send
+    where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  '23505',
+  'provider batch id conflicts with the recorded dispatch',
+  'a response cannot replace an already bound provider batch'
+);
+select throws_ok(
+  $$select public.claim_campaign_dispatch(send.id)
+    from public.campaign_sends send where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  '55000',
+  'send is not dispatchable',
+  'a submitted send cannot be dispatched again'
+);
 select throws_ok(
   $$select public.assert_brand_owner('22222222-2222-4222-8222-222222222222')$$,
   '42501',
@@ -221,6 +270,13 @@ select throws_ok(
   '42501',
   'owner role required',
   'analyst cannot confirm or retry a campaign send'
+);
+select throws_ok(
+  $$select public.claim_campaign_dispatch(send.id)
+    from public.campaign_sends send where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  '42501',
+  'owner role required',
+  'analyst cannot claim an approved provider dispatch'
 );
 
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);

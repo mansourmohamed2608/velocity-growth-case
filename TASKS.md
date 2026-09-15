@@ -45,9 +45,9 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 - [x] PASS — Owner sees the exact channel/country-eligible recipients and count before confirmation.
 - [x] PASS — Approval atomically freezes immutable recipient destinations, source facts, approver, and time.
 - [x] PASS — Per-campaign advisory locking plus unique campaign/confirmation keys prevent duplicate logical sends.
-- [ ] TODO — Retries, response loss, interruption, and partial failure are visible and recoverable.
-- [ ] TODO — Provider dispatch is server-side and uses a stable idempotency key.
-- [ ] TODO — Provider batch ID and per-recipient progress/results are inspectable.
+- [x] PASS — Dispatch claims, attempts, safe errors, response loss, interruption, and partial classification are visible and retryable.
+- [x] PASS — Provider dispatch is server-only and always uses the immutable send UUID as its idempotency key.
+- [x] PASS — Provider batch ID and bounded per-recipient progress/results are persisted and inspectable.
 - [x] PASS — Analysts cannot call audience-preview or confirmation RPCs; no client dispatch capability exists.
 
 ## Provider reconciliation

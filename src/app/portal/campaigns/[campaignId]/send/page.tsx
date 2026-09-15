@@ -6,14 +6,9 @@ import { redirect } from "next/navigation";
 import { getSendPreparation, type FrozenRecipient, type SendAudienceRow } from "@/lib/portal-data";
 import { requirePortalContext } from "@/lib/portal-context";
 
-import { approveSend } from "./actions";
+import { approveSend, dispatchSend } from "./actions";
 
 const integer = new Intl.NumberFormat("en", { maximumFractionDigits: 0 });
-const timestamp = new Intl.DateTimeFormat("en", {
-  dateStyle: "medium",
-  timeStyle: "short",
-  timeZone: "UTC",
-});
 
 function pageHref(campaignId: string, page: number) {
   return `/portal/campaigns/${campaignId}/send${page > 1 ? `?page=${page}` : ""}`;
@@ -76,35 +71,61 @@ export default async function SendPage({
       </section>
 
       {data.send ? (
-        <section aria-label="Send progress" className="metric-grid send-metrics">
-          <article className="metric-card metric-card-primary">
-            <span>Frozen recipients</span>
-            <strong>{integer.format(data.send.recipient_count)}</strong>
-            <p>Immutable at approval</p>
-          </article>
-          <article className="metric-card">
-            <span>Send state</span>
-            <strong className="metric-date">{data.send.status}</strong>
-            <p>
-              {data.send.provider_batch_id
-                ? `Batch ${data.send.provider_batch_id}`
-                : "Awaiting provider dispatch"}
-            </p>
-          </article>
-          <article className="metric-card">
-            <span>Approved</span>
-            <strong className="metric-date">
-              {data.send.approved_at
-                ? timestamp.format(new Date(data.send.approved_at))
-                : "Imported history"}
-            </strong>
-            <p>
-              {data.send.source === "portal"
-                ? "Owner-confirmed snapshot"
-                : "Imported provider record"}
-            </p>
-          </article>
-        </section>
+        <>
+          <section aria-label="Send progress" className="metric-grid send-metrics">
+            <article className="metric-card metric-card-primary">
+              <span>Frozen recipients</span>
+              <strong>{integer.format(data.send.recipient_count)}</strong>
+              <p>Immutable at approval</p>
+            </article>
+            <article className="metric-card">
+              <span>Send state</span>
+              <strong className="metric-date">{data.send.status}</strong>
+              <p>
+                {data.send.provider_batch_id
+                  ? `Batch ${data.send.provider_batch_id}`
+                  : "Awaiting provider dispatch"}
+              </p>
+            </article>
+            <article className="metric-card">
+              <span>Provider accepted</span>
+              <strong>{integer.format(data.send.accepted_count)}</strong>
+              <p>
+                {integer.format(data.send.rejected_count)} rejected ·{" "}
+                {integer.format(data.send.delivered_count)} delivered
+              </p>
+            </article>
+          </section>
+          {data.send.source === "portal" &&
+          ["approved", "dispatching", "failed"].includes(data.send.status) ? (
+            <section className="dispatch-callout">
+              <div>
+                <p className="section-kicker">Irreversible provider action</p>
+                <h2>
+                  {data.send.status === "approved" ? "Ready to dispatch" : "Recover this dispatch"}
+                </h2>
+                <p>
+                  This sends <strong>{integer.format(data.send.recipient_count)}</strong>{" "}
+                  {data.campaign.channel} messages for <strong>{data.campaign.name}</strong>. The
+                  frozen send ID is reused on every retry, so provider acceptance or a lost response
+                  cannot create a second delivery.
+                </p>
+                {data.send.last_error ? (
+                  <p className="dispatch-error">{data.send.last_error}</p>
+                ) : null}
+              </div>
+              <form action={dispatchSend}>
+                <input name="campaignId" type="hidden" value={data.campaign.id} />
+                <input name="sendId" type="hidden" value={data.send.id} />
+                <button className="button button-primary" type="submit">
+                  {data.send.status === "approved"
+                    ? "Dispatch approved audience"
+                    : "Retry same provider batch"}
+                </button>
+              </form>
+            </section>
+          ) : null}
+        </>
       ) : (
         <section className="approval-callout">
           <div>
