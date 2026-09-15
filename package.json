@@ -16,7 +16,8 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
-    "data:import": "tsx scripts/import-seed.ts"
+    "data:import": "tsx scripts/import-seed.ts",
+    "data:verify": "tsx scripts/verify-import.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

@@ -12,6 +12,16 @@ Analysis date: 15 Sep 2026. Source archive SHA-256 independently verified as `49
 
 Logical contact counts before validation and after applying the Kilele delta are Kilele 82,895, Karoo 12,540, and Marrakech 933. These are not displayed dashboard totals until source validation and import decisions are applied.
 
+After validation, deterministic deduplication, and delta precedence, verified database totals are:
+
+| Brand             | Contacts | Campaigns |  Events | Historical sends |
+| ----------------- | -------: | --------: | ------: | ---------------: |
+| Kilele Rides      |   79,778 |        44 | 294,736 |                7 |
+| Karoo Coaches     |   12,406 |        19 |  69,100 |                0 |
+| Marrakech Express |      918 |         6 |     307 |                0 |
+
+Running the complete importer twice leaves these totals unchanged and produces zero duplicate contact, campaign, or event natural keys. Each attempt creates new audit runs by design. The Kilele delta sample `CT-070368` remains at source precedence 10 after a base-file rerun.
+
 ## Natural keys and relationships
 
 - Contacts: `(brand, external_id)`. External contact IDs overlap across brands.

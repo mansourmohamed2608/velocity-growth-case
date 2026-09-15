@@ -459,19 +459,25 @@ CREATE TABLE IF NOT EXISTS "public"."contacts" (
     "source_updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "source_precedence" smallint DEFAULT 0 NOT NULL,
     CONSTRAINT "contacts_check" CHECK ((("email" IS NOT NULL) OR ("phone" IS NOT NULL))),
     CONSTRAINT "contacts_check1" CHECK ((("deleted_at" IS NULL) OR ("deleted_at" >= "signup_at"))),
     CONSTRAINT "contacts_country_code_check" CHECK ((("country_code" IS NULL) OR ("country_code" ~ '^[A-Z]{2}$'::"text"))),
     CONSTRAINT "contacts_email_check" CHECK ((("email" IS NULL) OR (("email" = "lower"("email")) AND ("email" ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'::"text")))),
     CONSTRAINT "contacts_external_id_check" CHECK (("external_id" ~ '^CT-[0-9]{6}$'::"text")),
     CONSTRAINT "contacts_full_name_check" CHECK (("btrim"("full_name") <> ''::"text")),
-    CONSTRAINT "contacts_phone_check" CHECK ((("phone" IS NULL) OR ("btrim"("phone") <> ''::"text")))
+    CONSTRAINT "contacts_phone_check" CHECK ((("phone" IS NULL) OR ("btrim"("phone") <> ''::"text"))),
+    CONSTRAINT "contacts_source_precedence_check" CHECK (("source_precedence" >= 0))
 );
 
 ALTER TABLE ONLY "public"."contacts" FORCE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."contacts" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."contacts"."source_precedence" IS 'Higher-precedence source exports may update lower-precedence rows; base reruns cannot overwrite dated corrections.';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."import_errors" (

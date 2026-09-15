@@ -1,6 +1,6 @@
 begin;
 
-select plan(16);
+select plan(17);
 
 select has_table('public', 'brands', 'brands table exists');
 select has_table('public', 'contacts', 'contacts table exists');
@@ -8,6 +8,7 @@ select has_table('public', 'campaigns', 'campaigns table exists');
 select has_table('public', 'campaign_sends', 'campaign sends table exists');
 select has_table('public', 'provider_events', 'provider events table exists');
 select has_table('public', 'published_reports', 'published reports table exists');
+select has_column('public', 'contacts', 'source_precedence', 'contacts retain source precedence');
 
 select results_eq(
   $$select count(*)::bigint from public.brands$$,

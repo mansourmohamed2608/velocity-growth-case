@@ -50,8 +50,8 @@ select results_eq(
   'Kilele owner sees one brand'
 );
 select results_eq(
-  $$select full_name from public.contacts order by full_name$$,
-  array['Kilele Contact'::text],
+  $$select distinct brand_id::text from public.contacts order by brand_id::text$$,
+  array['11111111-1111-4111-8111-111111111111'::text],
   'central isolation policy hides all foreign contacts without a client filter'
 );
 select is_empty(
@@ -67,9 +67,10 @@ select is_empty(
   'a guessed foreign contact UUID returns no row'
 );
 select results_eq(
-  $$select count(*)::bigint from public.provider_events event
-    join public.campaigns campaign on campaign.id = event.campaign_id$$,
-  array[1::bigint],
+  $$select distinct event.brand_id::text from public.provider_events event
+    join public.campaigns campaign on campaign.id = event.campaign_id
+    order by event.brand_id::text$$,
+  array['11111111-1111-4111-8111-111111111111'::text],
   'a relationship join cannot reveal a foreign event'
 );
 select results_eq(
@@ -102,8 +103,8 @@ select throws_ok(
 
 select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
 select results_eq(
-  $$select count(*)::bigint from public.contacts$$,
-  array[1::bigint],
+  $$select distinct brand_id::text from public.contacts order by brand_id::text$$,
+  array['11111111-1111-4111-8111-111111111111'::text],
   'analyst may read only the matching tenant'
 );
 select throws_ok(
@@ -141,8 +142,8 @@ select is_empty(
   'Karoo cannot request Kilele contacts'
 );
 select results_eq(
-  $$select full_name from public.contacts$$,
-  array['Karoo Contact'::text],
+  $$select distinct brand_id::text from public.contacts order by brand_id::text$$,
+  array['22222222-2222-4222-8222-222222222222'::text],
   'Karoo direct unfiltered access returns only Karoo'
 );
 
@@ -179,4 +180,3 @@ select throws_ok(
 
 select * from finish();
 rollback;
-

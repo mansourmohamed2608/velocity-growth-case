@@ -17,9 +17,9 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 - [ ] TODO — Six authorized accounts: one owner and one analyst per brand.
 - [ ] TODO — Email/password and Google sign-in both work.
 - [x] PASS — Unauthorized authenticated identities get no tenant access (direct RLS and context-RPC regression tests).
-- [ ] TODO — Idempotently import all valid contacts, campaigns, events, send-log rows, and the Kilele delta.
-- [ ] TODO — Reject invalid rows and persist visible, actionable reasons.
-- [ ] TODO — Re-import leaves stable logical counts.
+- [x] PASS — Idempotently import all valid contacts, campaigns, events, send-log rows, and the Kilele delta.
+- [ ] TODO — Invalid rows and actionable reasons persist; product visibility is completed with the portal UI.
+- [x] PASS — Two clean full imports leave identical logical counts and zero duplicate natural keys.
 
 ## Tenant security and roles
 
