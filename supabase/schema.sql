@@ -740,9 +740,28 @@ ALTER FUNCTION "public"."ingest_provider_event_page"("target_send_id" "uuid", "e
 
 
 CREATE OR REPLACE FUNCTION "public"."portal_campaign_performance"("result_limit" integer DEFAULT 100) RETURNS TABLE("id" "uuid", "external_id" "text", "name" "text", "channel" "public"."message_channel", "sent_at" timestamp with time zone, "reported_sent" bigint, "reported_delivered" bigint, "reported_bounced" bigint, "reported_opens" bigint, "reported_clicks" bigint, "spend" numeric, "event_delivered" bigint, "event_bounced" bigint, "event_opened" bigint, "event_clicked" bigint, "event_unsubscribed" bigint, "event_complained" bigint, "send_status" "public"."send_status", "send_recipient_count" integer)
-    LANGUAGE "sql" STABLE
+    LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
+  with tenant as (
+    select private.current_brand_id() as brand_id
+  ), unique_events as (
+    select distinct event.campaign_id, event.event_type, event.contact_id
+    from public.provider_events event
+    cross join tenant
+    where event.brand_id = tenant.brand_id
+  ), event_totals as (
+    select
+      event.campaign_id,
+      count(*) filter (where event.event_type = 'delivered')::bigint as delivered,
+      count(*) filter (where event.event_type = 'bounced')::bigint as bounced,
+      count(*) filter (where event.event_type = 'opened')::bigint as opened,
+      count(*) filter (where event.event_type = 'clicked')::bigint as clicked,
+      count(*) filter (where event.event_type = 'unsubscribed')::bigint as unsubscribed,
+      count(*) filter (where event.event_type = 'complained')::bigint as complained
+    from unique_events event
+    group by event.campaign_id
+  )
   select
     campaign.id,
     campaign.external_id,
@@ -764,22 +783,12 @@ CREATE OR REPLACE FUNCTION "public"."portal_campaign_performance"("result_limit"
     send.status,
     send.recipient_count
   from public.campaigns campaign
-  left join lateral (
-    select
-      count(distinct event.contact_id) filter (where event.event_type = 'delivered') delivered,
-      count(distinct event.contact_id) filter (where event.event_type = 'bounced') bounced,
-      count(distinct event.contact_id) filter (where event.event_type = 'opened') opened,
-      count(distinct event.contact_id) filter (where event.event_type = 'clicked') clicked,
-      count(distinct event.contact_id) filter (where event.event_type = 'unsubscribed') unsubscribed,
-      count(distinct event.contact_id) filter (where event.event_type = 'complained') complained
-    from public.provider_events event
-    where event.brand_id = (select private.current_brand_id())
-      and event.campaign_id = campaign.id
-  ) event_totals on true
+  cross join tenant
+  left join event_totals on event_totals.campaign_id = campaign.id
   left join public.campaign_sends send
-    on send.brand_id = (select private.current_brand_id())
+    on send.brand_id = tenant.brand_id
    and send.campaign_id = campaign.id
-  where campaign.brand_id = (select private.current_brand_id())
+  where campaign.brand_id = tenant.brand_id
   order by campaign.sent_at desc, campaign.id
   limit greatest(1, least(coalesce(result_limit, 100), 100));
 $$;
@@ -893,7 +902,7 @@ ALTER FUNCTION "public"."portal_dashboard_summary"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."portal_send_audience"("target_campaign_id" "uuid", "page_size" integer DEFAULT 25, "page_offset" integer DEFAULT 0) RETURNS TABLE("contact_id" "uuid", "external_id" "text", "full_name" "text", "destination" "text", "country_code" "text", "total_count" bigint)
-    LANGUAGE "plpgsql" STABLE
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 declare
@@ -941,7 +950,7 @@ ALTER FUNCTION "public"."portal_send_audience"("target_campaign_id" "uuid", "pag
 
 
 CREATE OR REPLACE FUNCTION "public"."portal_send_audience_count"("target_campaign_id" "uuid") RETURNS bigint
-    LANGUAGE "plpgsql" STABLE
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 declare
@@ -1867,6 +1876,10 @@ CREATE INDEX "import_errors_brand_run_idx" ON "public"."import_errors" USING "bt
 
 
 CREATE INDEX "import_runs_brand_started_idx" ON "public"."import_runs" USING "btree" ("brand_id", "started_at" DESC);
+
+
+
+CREATE INDEX "provider_events_brand_campaign_type_contact_idx" ON "public"."provider_events" USING "btree" ("brand_id", "campaign_id", "event_type", "contact_id");
 
 
 

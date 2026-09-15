@@ -70,6 +70,25 @@ test("analyst sees read-only campaigns and no send or publication action", async
   await expect(page.getByRole("link", { name: "Publish report" })).toHaveCount(0);
 });
 
+test("largest production tenant can load campaign metrics and an exact send preview", async ({
+  page,
+}, testInfo) => {
+  const baseUrl = String(testInfo.project.use.baseURL ?? "");
+  test.skip(
+    testInfo.project.name !== "desktop" || !baseUrl.startsWith("https://"),
+    "The hosted largest-tenant performance check runs once against production.",
+  );
+  const owner = (await credentials()).accounts.find(
+    (account) => account.brandCode === "KILELE" && account.role === "owner",
+  )!;
+  await signIn(page, owner.email, owner.password);
+  await page.getByRole("link", { name: "Campaigns" }).click();
+  await expect(page.getByRole("heading", { name: "Campaigns", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Prepare send" }).first().click();
+  await expect(page.getByText("Exact eligible audience")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Approve .* recipients/ })).toBeVisible();
+});
+
 test("authenticated portal remains contained at a phone viewport", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "phone", "Phone layout runs only in the phone project.");
   const owner = (await credentials()).accounts.find(
