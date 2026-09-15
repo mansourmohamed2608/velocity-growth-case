@@ -1,5 +1,49 @@
 {
+  "name": "velocity-growth-case",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "data:import": "tsx scripts/import-seed.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.116.0",
+    "csv-parse": "6.1.0",
+    "iconv-lite": "0.7.0",
+    "next": "16.3.5",
+    "postgres": "3.4.7",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.1.12"
+  },
   "devDependencies": {
-    "supabase": "^2.117.0"
+    "@types/node": "24.10.0",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitest/coverage-v8": "4.0.7",
+    "eslint": "9.39.1",
+    "eslint-config-next": "16.3.5",
+    "jsdom": "27.1.0",
+    "prettier": "3.6.2",
+    "supabase": "2.117.0",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "4.0.7"
+  },
+  "engines": {
+    "node": ">=20.9.0"
   }
 }

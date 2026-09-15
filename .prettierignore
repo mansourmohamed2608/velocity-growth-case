@@ -1,0 +1,7 @@
+.next
+coverage
+node_modules
+.task
+.work
+package-lock.json
+

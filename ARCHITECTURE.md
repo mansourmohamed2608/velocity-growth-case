@@ -52,4 +52,3 @@ A trusted reconciler polls `/v1/messages/{batch_id}/events` with the last cursor
 ## Public report
 
 Publishing binds one opaque token to one brand and campaign and stores only a password hash. Password verification and report lookup run server-side. The resulting expiring report session can retrieve one purpose-built aggregate only; it cannot read tenant tables or create a portal session.
-

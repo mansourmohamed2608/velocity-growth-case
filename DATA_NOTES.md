@@ -4,11 +4,11 @@ Analysis date: 15 Sep 2026. Source archive SHA-256 independently verified as `49
 
 ## Source files
 
-| Brand | Contacts | Delta | Campaign rows / distinct | Event rows / distinct | Notes |
-|---|---:|---:|---:|---:|---|
-| Kilele Rides | 83,993 / 81,215 distinct IDs | 4,180 rows; 2,500 updates + 1,680 new | 46 / 44 | 312,000 / 303,588 | UTF-8 comma CSV; 9-row send log |
-| Karoo Coaches | 13,042 / 12,540 distinct IDs | — | 19 / 19 | 74,000 / 69,100 | Contacts are Windows-1252 with title-case headers |
-| Marrakech Express | 957 / 933 distinct IDs | — | 6 / 6 | 940 / 940 | UTF-8 semicolon CSV; campaign spend uses decimal comma |
+| Brand             |                     Contacts |                                 Delta | Campaign rows / distinct | Event rows / distinct | Notes                                                  |
+| ----------------- | ---------------------------: | ------------------------------------: | -----------------------: | --------------------: | ------------------------------------------------------ |
+| Kilele Rides      | 83,993 / 81,215 distinct IDs | 4,180 rows; 2,500 updates + 1,680 new |                  46 / 44 |     312,000 / 303,588 | UTF-8 comma CSV; 9-row send log                        |
+| Karoo Coaches     | 13,042 / 12,540 distinct IDs |                                     — |                  19 / 19 |       74,000 / 69,100 | Contacts are Windows-1252 with title-case headers      |
+| Marrakech Express |       957 / 933 distinct IDs |                                     — |                    6 / 6 |             940 / 940 | UTF-8 semicolon CSV; campaign spend uses decimal comma |
 
 Logical contact counts before validation and after applying the Kilele delta are Kilele 82,895, Karoo 12,540, and Marrakech 933. These are not displayed dashboard totals until source validation and import decisions are applied.
 
@@ -45,4 +45,3 @@ Base URL: `https://dispatcher-production-72fc.up.railway.app`.
 - Documented provider event types are `delivered`, `bounced`, `opened`, and `unsubscribed`.
 
 The provider docs call the report stream ordered and exactly-once, but the employer brief explicitly says evaluation reports will be duplicated/messy/out of order. Reconciliation therefore assumes the stricter failure model. No safe sandbox or dry-run endpoint is documented.
-

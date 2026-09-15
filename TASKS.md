@@ -78,4 +78,3 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 - [ ] TODO — `schema.sql`, `README.md`, `SUBMISSION.md`, and private credentials are complete.
 - [ ] TODO — Employer-requested note is at most 300 words and answers all four questions.
 - [ ] TODO — Final requirement and security audits pass with a clean pushed worktree.
-

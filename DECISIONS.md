@@ -37,4 +37,3 @@
 ## D-009 — No real messages in automated validation
 
 **Decision:** Provider requests use an injectable transport in tests. Production dispatch is enabled only after audience and idempotency verification. The employer provider has no documented sandbox.
-

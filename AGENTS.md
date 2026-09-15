@@ -18,4 +18,3 @@ Non-negotiable rules:
 - Imports, send confirmation, dispatch retries, and event reconciliation must be idempotent.
 - Never make a real provider send during tests. Use dependency injection and recorded fixtures.
 - Update `TASKS.md` and `DECISIONS.md` when acceptance status or a material decision changes.
-
