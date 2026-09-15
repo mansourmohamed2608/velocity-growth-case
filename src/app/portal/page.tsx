@@ -157,7 +157,12 @@ export default async function PortalPage() {
           </Link>
         </div>
         {data.campaigns.length ? (
-          <div className="table-scroll">
+          <div
+            aria-label="Latest campaign performance table"
+            className="table-scroll"
+            role="region"
+            tabIndex={0}
+          >
             <table>
               <thead>
                 <tr>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SubmitButton } from "@/components/submit-button";
 import { requirePortalContext } from "@/lib/portal-context";
 import { reportTokenPattern } from "@/lib/public-report";
 import { createClient } from "@/lib/supabase/server";
@@ -108,9 +109,9 @@ export default async function PublishReportPage({
             type="password"
           />
           <small>12–128 characters. Send it through a different channel than the URL.</small>
-          <button className="button button-dark" type="submit">
+          <SubmitButton className="button button-dark" pendingLabel="Securing report…">
             {publishedResult.data ? "Rotate secure report" : "Publish secure report"}
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </main>

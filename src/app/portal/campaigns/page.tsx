@@ -41,7 +41,12 @@ export default async function CampaignsPage() {
         </div>
 
         {campaigns.length ? (
-          <div className="table-scroll">
+          <div
+            aria-label="Campaign history table"
+            className="table-scroll"
+            role="region"
+            tabIndex={0}
+          >
             <table className="campaigns-table">
               <thead>
                 <tr>

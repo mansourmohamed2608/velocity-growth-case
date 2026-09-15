@@ -73,7 +73,7 @@ export default async function ContactsPage({
         </div>
 
         {rows.length ? (
-          <div className="table-scroll">
+          <div aria-label="Contacts table" className="table-scroll" role="region" tabIndex={0}>
             <table>
               <thead>
                 <tr>

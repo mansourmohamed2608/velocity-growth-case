@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { SubmitButton } from "@/components/submit-button";
+
 import { signInWithGoogle, signInWithPassword } from "./actions";
 
 export const metadata = { title: "Sign in" };
@@ -47,12 +49,15 @@ export default async function LoginPage({
             </p>
           ) : null}
           <form action={signInWithGoogle}>
-            <button className="button button-primary button-wide" type="submit">
+            <SubmitButton
+              className="button button-primary button-wide"
+              pendingLabel="Opening Google…"
+            >
               <span className="google-g" aria-hidden="true">
                 G
               </span>
               Continue with Google
-            </button>
+            </SubmitButton>
           </form>
           <div className="divider">
             <span>or</span>
@@ -78,9 +83,9 @@ export default async function LoginPage({
                 required
               />
             </label>
-            <button className="button button-dark button-wide" type="submit">
+            <SubmitButton className="button button-dark button-wide" pendingLabel="Signing in…">
               Sign in
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </section>

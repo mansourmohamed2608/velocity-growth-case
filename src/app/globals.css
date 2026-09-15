@@ -207,6 +207,7 @@ input:focus-visible {
 }
 .auth-story {
   display: flex;
+  min-width: 0;
   min-height: 100%;
   flex-direction: column;
   justify-content: space-between;
@@ -235,12 +236,16 @@ input:focus-visible {
 }
 .auth-panel {
   display: grid;
+  min-width: 0;
   place-items: center;
   padding: 40px;
   background: var(--white);
+  grid-template-columns: minmax(0, 1fr);
 }
 .auth-card {
-  width: min(100%, 430px);
+  width: 100%;
+  min-width: 0;
+  max-width: 430px;
 }
 .auth-card h2 {
   margin: 0 0 12px;
@@ -351,7 +356,18 @@ input:focus-visible {
   font-weight: 700;
 }
 .portal-nav a {
+  position: relative;
   color: var(--ink);
+}
+.portal-nav a[aria-current="page"]::after {
+  position: absolute;
+  right: 0;
+  bottom: -10px;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--coral);
+  content: "";
 }
 .portal-nav [aria-disabled="true"] {
   opacity: 0.48;
@@ -697,6 +713,11 @@ input:focus-visible {
   max-width: 100%;
   margin-top: 26px;
   overflow-x: auto;
+}
+.table-scroll:focus-visible {
+  border-radius: 8px;
+  outline: 3px solid var(--coral);
+  outline-offset: 3px;
 }
 table {
   width: 100%;
@@ -1234,7 +1255,7 @@ td > span:not(.channel-pill, .soft-pill, .contactability, .status-label) {
     margin-top: 14px;
   }
   .auth-shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .auth-story {
     min-height: 42svh;
@@ -1263,6 +1284,9 @@ td > span:not(.channel-pill, .soft-pill, .contactability, .status-label) {
     background: rgba(255, 253, 248, 0.94);
     box-shadow: var(--shadow);
     backdrop-filter: blur(14px);
+  }
+  .portal-nav a[aria-current="page"]::after {
+    bottom: -5px;
   }
   .portal-meta {
     align-items: flex-start;

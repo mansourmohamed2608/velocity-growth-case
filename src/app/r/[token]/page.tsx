@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 
+import { SubmitButton } from "@/components/submit-button";
 import {
   createPublicClient,
   digestForPostgres,
@@ -59,9 +60,9 @@ export default async function PublicReportPage({
               required
               type="password"
             />
-            <button className="button button-dark" type="submit">
+            <SubmitButton className="button button-dark" pendingLabel="Checking access…">
               View campaign results
-            </button>
+            </SubmitButton>
           </form>
         </section>
       </main>

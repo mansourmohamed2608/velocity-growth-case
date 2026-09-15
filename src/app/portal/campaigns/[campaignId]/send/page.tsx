@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { SubmitButton } from "@/components/submit-button";
 import { getSendPreparation, type FrozenRecipient, type SendAudienceRow } from "@/lib/portal-data";
 import { requirePortalContext } from "@/lib/portal-context";
 
@@ -117,11 +118,11 @@ export default async function SendPage({
               <form action={dispatchSend}>
                 <input name="campaignId" type="hidden" value={data.campaign.id} />
                 <input name="sendId" type="hidden" value={data.send.id} />
-                <button className="button button-primary" type="submit">
+                <SubmitButton className="button button-primary" pendingLabel="Dispatching safely…">
                   {data.send.status === "approved"
                     ? "Dispatch approved audience"
                     : "Retry same provider batch"}
-                </button>
+                </SubmitButton>
               </form>
             </section>
           ) : null}
@@ -139,9 +140,9 @@ export default async function SendPage({
               <form action={reconcileSend}>
                 <input name="campaignId" type="hidden" value={data.campaign.id} />
                 <input name="sendId" type="hidden" value={data.send.id} />
-                <button className="button button-quiet" type="submit">
+                <SubmitButton className="button button-quiet" pendingLabel="Refreshing results…">
                   Refresh provider results
-                </button>
+                </SubmitButton>
               </form>
             </section>
           ) : null}
@@ -160,9 +161,13 @@ export default async function SendPage({
               Approval freezes the exact recipients and destinations shown by these rules. It does
               not contact the provider yet; dispatch is a separate recoverable step.
             </p>
-            <button className="button button-primary" disabled={data.total === 0} type="submit">
+            <SubmitButton
+              className="button button-primary"
+              disabled={data.total === 0}
+              pendingLabel="Freezing audience…"
+            >
               Approve {integer.format(data.total)} recipients
-            </button>
+            </SubmitButton>
           </form>
         </section>
       )}
@@ -176,7 +181,12 @@ export default async function SendPage({
           <span className="soft-pill">{integer.format(data.total)} exact records</span>
         </div>
         {data.recipients.length ? (
-          <div className="table-scroll">
+          <div
+            aria-label="Campaign recipient table"
+            className="table-scroll"
+            role="region"
+            tabIndex={0}
+          >
             <table>
               <thead>
                 <tr>

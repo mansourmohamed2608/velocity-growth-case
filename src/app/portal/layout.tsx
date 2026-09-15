@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { PortalNav } from "@/components/portal-nav";
+import { SubmitButton } from "@/components/submit-button";
 import { requirePortalContext } from "@/lib/portal-context";
 
 import { signOut } from "./actions";
@@ -16,15 +18,11 @@ export default async function PortalLayout({ children }: { children: React.React
           </span>
           <span>Relay</span>
         </Link>
-        <nav aria-label="Portal navigation" className="portal-nav">
-          <Link href="/portal">Dashboard</Link>
-          <Link href="/portal/contacts">Contacts</Link>
-          <Link href="/portal/campaigns">Campaigns</Link>
-        </nav>
+        <PortalNav />
         <form action={signOut}>
-          <button className="button button-quiet" type="submit">
+          <SubmitButton className="button button-quiet" pendingLabel="Signing out…">
             Sign out
-          </button>
+          </SubmitButton>
         </form>
       </header>
       <div className="portal-meta">
