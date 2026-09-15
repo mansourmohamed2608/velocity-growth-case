@@ -71,6 +71,47 @@ export interface ImportIssue {
   reason: string;
 }
 
+export interface SendAudienceRow {
+  contact_id: string;
+  external_id: string;
+  full_name: string;
+  destination: string;
+  country_code: string | null;
+  total_count: number;
+}
+
+export interface CampaignForSend {
+  id: string;
+  external_id: string;
+  name: string;
+  channel: "email" | "sms";
+  target_country_code: string | null;
+}
+
+export interface CampaignSend {
+  id: string;
+  source: "imported" | "portal";
+  approved_at: string | null;
+  recipient_count: number;
+  status: string;
+  provider_batch_id: string | null;
+  accepted_count: number;
+  rejected_count: number;
+  delivered_count: number;
+  opened_count: number;
+  bounced_count: number;
+  unsubscribed_count: number;
+  last_error: string | null;
+}
+
+export interface FrozenRecipient {
+  id: string;
+  contact_external_id: string;
+  destination: string;
+  status: string;
+  approved_snapshot: { full_name?: string; country_code?: string | null };
+}
+
 function requireData<T>(data: T | null, error: { message: string } | null, label: string): T {
   if (error) throw new Error(`${label} could not be loaded.`, { cause: error });
   if (data === null) throw new Error(`${label} returned no response.`);
@@ -140,4 +181,70 @@ export async function getCampaigns() {
   const supabase = await createClient();
   const result = await supabase.rpc("portal_campaign_performance", { result_limit: 100 });
   return requireData(result.data as CampaignPerformance[] | null, result.error, "Campaign history");
+}
+
+export async function getSendPreparation(campaignId: string, page: number, pageSize = 25) {
+  const supabase = await createClient();
+  const campaignResult = await supabase
+    .from("campaigns")
+    .select("id,external_id,name,channel,target_country_code")
+    .eq("id", campaignId)
+    .maybeSingle();
+  const campaign = requireData(
+    campaignResult.data as CampaignForSend | null,
+    campaignResult.error,
+    "Campaign",
+  );
+
+  const sendResult = await supabase
+    .from("campaign_sends")
+    .select(
+      "id,source,approved_at,recipient_count,status,provider_batch_id,accepted_count,rejected_count,delivered_count,opened_count,bounced_count,unsubscribed_count,last_error",
+    )
+    .eq("campaign_id", campaignId)
+    .maybeSingle();
+  if (sendResult.error)
+    throw new Error("Campaign send could not be loaded.", { cause: sendResult.error });
+  const send = sendResult.data as CampaignSend | null;
+  const offset = (page - 1) * pageSize;
+
+  if (send) {
+    const recipientsResult = await supabase
+      .from("campaign_send_recipients")
+      .select("id,contact_external_id,destination,status,approved_snapshot", { count: "exact" })
+      .eq("send_id", send.id)
+      .order("contact_external_id")
+      .range(offset, offset + pageSize - 1);
+    return {
+      campaign,
+      send,
+      recipients: requireData(
+        recipientsResult.data as FrozenRecipient[] | null,
+        recipientsResult.error,
+        "Approved recipients",
+      ),
+      total: recipientsResult.count ?? send.recipient_count,
+      pageSize,
+    };
+  }
+
+  const [audienceResult, countResult] = await Promise.all([
+    supabase.rpc("portal_send_audience", {
+      target_campaign_id: campaignId,
+      page_size: pageSize,
+      page_offset: offset,
+    }),
+    supabase.rpc("portal_send_audience_count", { target_campaign_id: campaignId }),
+  ]);
+  return {
+    campaign,
+    send: null,
+    recipients: requireData(
+      audienceResult.data as SendAudienceRow[] | null,
+      audienceResult.error,
+      "Eligible audience",
+    ),
+    total: requireData(countResult.data as number | null, countResult.error, "Audience count"),
+    pageSize,
+  };
 }

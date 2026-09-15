@@ -36,19 +36,19 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 - [x] PASS — Dashboard shows bounded per-campaign reported and event-derived performance.
 - [x] PASS — Metric definitions and source ambiguity are displayed without silently substituting values.
 - [x] PASS — Contacts use bounded server/database pagination, exact counts, and server-side search.
-- [ ] TODO — Campaign history/results work; owner send and analyst denial complete with the safe-send workflow.
+- [x] PASS — Campaign history/results and owner-only audience approval work; analysts see read-only controls.
 - [x] PASS — Loading, empty, query-error, and permission-denied states are explicit and do not infer zeros.
 - [ ] TODO — Phone and laptop layouts are usable and accessible.
 
 ## Safe sending
 
-- [ ] TODO — Owner sees the exact eligible recipients and count before confirmation.
-- [ ] TODO — Approval freezes an immutable recipient snapshot and audit metadata.
-- [ ] TODO — Database uniqueness/locking prevents duplicate logical sends under concurrency.
+- [x] PASS — Owner sees the exact channel/country-eligible recipients and count before confirmation.
+- [x] PASS — Approval atomically freezes immutable recipient destinations, source facts, approver, and time.
+- [x] PASS — Per-campaign advisory locking plus unique campaign/confirmation keys prevent duplicate logical sends.
 - [ ] TODO — Retries, response loss, interruption, and partial failure are visible and recoverable.
 - [ ] TODO — Provider dispatch is server-side and uses a stable idempotency key.
 - [ ] TODO — Provider batch ID and per-recipient progress/results are inspectable.
-- [ ] TODO — Analysts cannot preview privileged data or confirm/dispatch.
+- [x] PASS — Analysts cannot call audience-preview or confirmation RPCs; no client dispatch capability exists.
 
 ## Provider reconciliation
 

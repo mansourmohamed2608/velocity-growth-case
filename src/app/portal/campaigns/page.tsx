@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { getCampaigns } from "@/lib/portal-data";
 import { requirePortalContext } from "@/lib/portal-context";
 
@@ -74,18 +76,16 @@ export default async function CampaignsPage() {
                     <td>{money.format(Number(campaign.spend))}</td>
                     <td>
                       {campaign.send_status ? (
-                        <span className={`status-label status-${campaign.send_status}`}>
-                          {campaign.send_status}
-                        </span>
+                        <Link className="text-link" href={`/portal/campaigns/${campaign.id}/send`}>
+                          View {campaign.send_status}
+                        </Link>
                       ) : context.role === "owner" ? (
-                        <button
+                        <Link
                           className="button button-dark"
-                          disabled
-                          title="Audience approval is added in the safe-send phase"
-                          type="button"
+                          href={`/portal/campaigns/${campaign.id}/send`}
                         >
                           Prepare send
-                        </button>
+                        </Link>
                       ) : (
                         <span className="read-only-label">Read only</span>
                       )}

@@ -1,6 +1,6 @@
 begin;
 
-select plan(27);
+select plan(36);
 
 insert into auth.users (id, email)
 values
@@ -18,19 +18,19 @@ values
   ('33333333-3333-4333-8333-333333333333', '30000000-0000-4000-8000-000000000001', 'owner');
 
 insert into public.contacts (
-  id, brand_id, external_id, full_name, email, signup_at,
+  id, brand_id, external_id, full_name, email, country_code, signup_at,
   lifecycle_status, marketing_consent, email_status, sms_status
 )
 values
-  ('a1111111-1111-4111-8111-111111111111', '11111111-1111-4111-8111-111111111111', 'CT-900001', 'Kilele Contact', 'kilele@example.test', now(), 'active', true, 'active', 'unavailable'),
-  ('a2222222-2222-4222-8222-222222222222', '22222222-2222-4222-8222-222222222222', 'CT-900001', 'Karoo Contact', 'karoo@example.test', now(), 'active', true, 'active', 'unavailable'),
-  ('a3333333-3333-4333-8333-333333333333', '33333333-3333-4333-8333-333333333333', 'CT-900001', 'Marrakech Contact', 'marrakech@example.test', now(), 'active', true, 'active', 'unavailable');
+  ('a1111111-1111-4111-8111-111111111111', '11111111-1111-4111-8111-111111111111', 'CT-900001', 'Kilele Contact', 'kilele@example.test', 'AQ', now(), 'active', true, 'active', 'unavailable'),
+  ('a2222222-2222-4222-8222-222222222222', '22222222-2222-4222-8222-222222222222', 'CT-900001', 'Karoo Contact', 'karoo@example.test', 'BV', now(), 'active', true, 'active', 'unavailable'),
+  ('a3333333-3333-4333-8333-333333333333', '33333333-3333-4333-8333-333333333333', 'CT-900001', 'Marrakech Contact', 'marrakech@example.test', 'TF', now(), 'active', true, 'active', 'unavailable');
 
-insert into public.campaigns (id, brand_id, external_id, name, channel, sent_at)
+insert into public.campaigns (id, brand_id, external_id, name, channel, target_country_code, sent_at)
 values
-  ('b1111111-1111-4111-8111-111111111111', '11111111-1111-4111-8111-111111111111', 'KIL-TEST', 'Kilele Campaign', 'email', now()),
-  ('b2222222-2222-4222-8222-222222222222', '22222222-2222-4222-8222-222222222222', 'KAR-TEST', 'Karoo Campaign', 'email', now()),
-  ('b3333333-3333-4333-8333-333333333333', '33333333-3333-4333-8333-333333333333', 'MAR-TEST', 'Marrakech Campaign', 'email', now());
+  ('b1111111-1111-4111-8111-111111111111', '11111111-1111-4111-8111-111111111111', 'KIL-TEST', 'Kilele Campaign', 'email', 'AQ', now()),
+  ('b2222222-2222-4222-8222-222222222222', '22222222-2222-4222-8222-222222222222', 'KAR-TEST', 'Karoo Campaign', 'email', 'BV', now()),
+  ('b3333333-3333-4333-8333-333333333333', '33333333-3333-4333-8333-333333333333', 'MAR-TEST', 'Marrakech Campaign', 'email', 'TF', now());
 
 insert into public.provider_events (
   brand_id, campaign_id, contact_id, source, provider_event_id,
@@ -101,6 +101,59 @@ select is_empty(
   $$select * from public.portal_campaign_performance(100) where external_id = 'KAR-TEST'$$,
   'campaign performance cannot expose a foreign campaign'
 );
+select results_eq(
+  $$select public.portal_send_audience_count('b1111111-1111-4111-8111-111111111111')$$,
+  array[1::bigint],
+  'owner preview calculates the exact currently eligible audience'
+);
+select results_eq(
+  $$select external_id from public.portal_send_audience('b1111111-1111-4111-8111-111111111111', 25, 0)$$,
+  array['CT-900001'::text],
+  'owner preview returns only exact channel and country eligible recipients'
+);
+select results_eq(
+  $$select recipient_count from public.approve_campaign_send(
+    'b1111111-1111-4111-8111-111111111111',
+    'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+  )$$,
+  array[1::integer],
+  'owner approval atomically freezes the previewed audience'
+);
+select results_eq(
+  $$select recipient_count from public.approve_campaign_send(
+    'b1111111-1111-4111-8111-111111111111',
+    'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
+  )$$,
+  array[1::integer],
+  'retrying the same confirmation key is idempotent'
+);
+select results_eq(
+  $$select count(*)::bigint from public.campaign_send_recipients
+    where contact_external_id = 'CT-900001'$$,
+  array[1::bigint],
+  'idempotent approval creates exactly one immutable recipient snapshot'
+);
+reset role;
+select throws_ok(
+  $$update public.campaign_send_recipients
+    set destination = 'changed@example.test'
+    where contact_external_id = 'CT-900001'$$,
+  'P0001',
+  'approved recipient snapshot is immutable',
+  'even a privileged update cannot alter an approved recipient identity'
+);
+update public.contacts
+set email = 'later-change@example.test'
+where id = 'a1111111-1111-4111-8111-111111111111';
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+select results_eq(
+  $$select destination from public.campaign_send_recipients
+    where contact_external_id = 'CT-900001'$$,
+  array['kilele@example.test'::text],
+  'later contact changes do not alter the historical approval snapshot'
+);
 select throws_ok(
   $$select public.assert_brand_owner('22222222-2222-4222-8222-222222222222')$$,
   '42501',
@@ -153,6 +206,21 @@ select throws_ok(
   '42501',
   'owner role required',
   'analyst cannot use an owner-only RPC'
+);
+select throws_ok(
+  $$select public.portal_send_audience_count('b1111111-1111-4111-8111-111111111111')$$,
+  '42501',
+  'owner role required',
+  'analyst cannot preview a send audience'
+);
+select throws_ok(
+  $$select public.approve_campaign_send(
+    'b1111111-1111-4111-8111-111111111111',
+    'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
+  )$$,
+  '42501',
+  'owner role required',
+  'analyst cannot confirm or retry a campaign send'
 );
 
 select set_config('request.jwt.claim.sub', '20000000-0000-4000-8000-000000000001', true);

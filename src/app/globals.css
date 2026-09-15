@@ -828,6 +828,84 @@ td > span:not(.channel-pill, .soft-pill, .contactability, .status-label) {
   color: var(--ink-soft);
   font-size: 0.72rem;
 }
+.back-link {
+  display: inline-block;
+  margin-bottom: 30px;
+  color: var(--green);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+.send-heading {
+  margin-bottom: 34px;
+}
+.send-heading > p {
+  text-transform: capitalize;
+}
+.send-metrics {
+  margin-bottom: 24px;
+}
+.send-metrics .metric-date {
+  overflow-wrap: anywhere;
+  font-size: clamp(1.7rem, 3vw, 2.7rem) !important;
+  line-height: 1.05;
+  text-transform: capitalize;
+}
+.approval-callout {
+  display: grid;
+  align-items: center;
+  gap: clamp(30px, 6vw, 80px);
+  margin-bottom: 24px;
+  padding: clamp(28px, 5vw, 58px);
+  border-radius: 22px;
+  color: white;
+  background: var(--green);
+  grid-template-columns: minmax(220px, 0.7fr) minmax(320px, 1.3fr);
+  box-shadow: var(--shadow);
+}
+.approval-callout > div > strong {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(4rem, 8vw, 7rem);
+  font-weight: 440;
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+}
+.approval-callout > div > span {
+  display: block;
+  margin-top: 18px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.82rem;
+}
+.approval-callout form {
+  padding-left: clamp(0px, 5vw, 60px);
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+}
+.approval-callout form p {
+  max-width: 570px;
+  margin: 0 0 24px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.7;
+}
+.recipient-panel {
+  margin-top: 24px;
+}
+.permission-panel {
+  max-width: 850px;
+  padding: clamp(32px, 6vw, 72px);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--white);
+}
+.permission-panel h1 {
+  font-size: clamp(3rem, 7vw, 5.6rem);
+}
+.permission-panel > p:not(.eyebrow) {
+  max-width: 580px;
+  margin: 24px 0;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
 .empty-state {
   display: grid;
   min-height: 150px;
@@ -1013,6 +1091,15 @@ td > span:not(.channel-pill, .soft-pill, .contactability, .status-label) {
   }
   .skeleton-title {
     height: 72px;
+  }
+  .approval-callout {
+    grid-template-columns: 1fr;
+  }
+  .approval-callout form {
+    padding-top: 26px;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    border-left: 0;
   }
 }
 
