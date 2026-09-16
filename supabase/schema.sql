@@ -518,6 +518,74 @@ CREATE OR REPLACE FUNCTION "public"."ingest_provider_event_page"("target_send_id
     AS $$
 declare
   selected_send public.campaign_sends%rowtype;
+  filtered_page jsonb;
+  skipped_total integer;
+begin
+  if event_page is null or jsonb_typeof(event_page) <> 'array' then
+    raise exception 'provider event page must be an array' using errcode = '22023';
+  end if;
+
+  select * into selected_send
+  from public.campaign_sends campaign_send
+  where campaign_send.id = target_send_id;
+
+  if not found or not private.is_brand_owner(selected_send.brand_id) then
+    raise exception 'owner role required' using errcode = '42501';
+  end if;
+
+  with classified as (
+    select
+      item.value,
+      item.position,
+      exists (
+        select 1
+        from public.campaign_send_recipients recipient
+        where recipient.send_id = selected_send.id
+          and (
+            recipient.contact_external_id = item.value->>'recipient_identifier'
+            or recipient.destination = item.value->>'recipient_identifier'
+          )
+      ) as is_known
+    from jsonb_array_elements(event_page) with ordinality item(value, position)
+  )
+  select
+    coalesce(jsonb_agg(classified.value order by classified.position)
+      filter (where classified.is_known), '[]'::jsonb),
+    count(*) filter (where not classified.is_known)::integer
+  into filtered_page, skipped_total
+  from classified;
+
+  return query
+  select *
+  from public.ingest_provider_event_page_strict(
+    target_send_id,
+    filtered_page,
+    target_next_cursor,
+    target_has_more
+  );
+
+  if skipped_total > 0 then
+    update public.campaign_sends campaign_send
+    set skipped_event_count = campaign_send.skipped_event_count + skipped_total,
+        last_error = skipped_total || case when skipped_total = 1
+          then ' provider event referenced an unknown recipient and was skipped.'
+          else ' provider events referenced unknown recipients and were skipped.'
+        end
+    where campaign_send.id = selected_send.id;
+  end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."ingest_provider_event_page"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."ingest_provider_event_page_strict"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) RETURNS TABLE("inserted_events" integer, "provider_cursor" "text", "delivered_count" integer, "opened_count" integer, "bounced_count" integer, "unsubscribed_count" integer)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+declare
+  selected_send public.campaign_sends%rowtype;
   unknown_recipients integer;
   inserted_total integer;
   last_page_event_id text;
@@ -736,7 +804,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."ingest_provider_event_page"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) OWNER TO "postgres";
+ALTER FUNCTION "public"."ingest_provider_event_page_strict"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."portal_campaign_performance"("result_limit" integer DEFAULT 100) RETURNS TABLE("id" "uuid", "external_id" "text", "name" "text", "channel" "public"."message_channel", "sent_at" timestamp with time zone, "reported_sent" bigint, "reported_delivered" bigint, "reported_bounced" bigint, "reported_opens" bigint, "reported_clicks" bigint, "spend" numeric, "event_delivered" bigint, "event_bounced" bigint, "event_opened" bigint, "event_clicked" bigint, "event_unsubscribed" bigint, "event_complained" bigint, "send_status" "public"."send_status", "send_recipient_count" integer)
@@ -1446,6 +1514,7 @@ CREATE TABLE IF NOT EXISTS "public"."campaign_sends" (
     "reconciled_at" timestamp with time zone,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "skipped_event_count" integer DEFAULT 0 NOT NULL,
     CONSTRAINT "campaign_sends_accepted_count_check" CHECK (("accepted_count" >= 0)),
     CONSTRAINT "campaign_sends_bounced_count_check" CHECK (("bounced_count" >= 0)),
     CONSTRAINT "campaign_sends_check" CHECK (((("source" = 'portal'::"public"."send_source") AND ("confirmation_key" IS NOT NULL) AND ("approved_by" IS NOT NULL) AND ("approved_at" IS NOT NULL)) OR (("source" = 'imported'::"public"."send_source") AND ("confirmation_key" IS NULL) AND ("approved_by" IS NULL)))),
@@ -1459,6 +1528,7 @@ CREATE TABLE IF NOT EXISTS "public"."campaign_sends" (
     CONSTRAINT "campaign_sends_opened_count_check" CHECK (("opened_count" >= 0)),
     CONSTRAINT "campaign_sends_recipient_count_check" CHECK (("recipient_count" >= 0)),
     CONSTRAINT "campaign_sends_rejected_count_check" CHECK (("rejected_count" >= 0)),
+    CONSTRAINT "campaign_sends_skipped_event_count_nonnegative" CHECK (("skipped_event_count" >= 0)),
     CONSTRAINT "campaign_sends_unsubscribed_count_check" CHECK (("unsubscribed_count" >= 0))
 );
 
@@ -2164,6 +2234,11 @@ GRANT ALL ON FUNCTION "public"."current_portal_context"() TO "service_role";
 REVOKE ALL ON FUNCTION "public"."ingest_provider_event_page"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."ingest_provider_event_page"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."ingest_provider_event_page"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."ingest_provider_event_page_strict"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."ingest_provider_event_page_strict"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) TO "service_role";
 
 
 

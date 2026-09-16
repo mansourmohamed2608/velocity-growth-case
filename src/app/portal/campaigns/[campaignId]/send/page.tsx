@@ -139,6 +139,13 @@ export default async function SendPage({
                 {query.more === "1" ? (
                   <small>More provider events are available. Refresh again to continue.</small>
                 ) : null}
+                {data.send.skipped_event_count > 0 ? (
+                  <small>
+                    {integer.format(data.send.skipped_event_count)} unbound provider{" "}
+                    {data.send.skipped_event_count === 1 ? "event was" : "events were"} skipped
+                    safely.
+                  </small>
+                ) : null}
               </div>
               <form action={reconcileSend}>
                 <input name="campaignId" type="hidden" value={data.campaign.id} />

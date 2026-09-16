@@ -101,6 +101,7 @@ export interface CampaignSend {
   opened_count: number;
   bounced_count: number;
   unsubscribed_count: number;
+  skipped_event_count: number;
   last_error: string | null;
 }
 
@@ -199,7 +200,7 @@ export async function getSendPreparation(campaignId: string, page: number, pageS
   const sendResult = await supabase
     .from("campaign_sends")
     .select(
-      "id,source,approved_at,recipient_count,status,provider_batch_id,accepted_count,rejected_count,delivered_count,opened_count,bounced_count,unsubscribed_count,last_error",
+      "id,source,approved_at,recipient_count,status,provider_batch_id,accepted_count,rejected_count,delivered_count,opened_count,bounced_count,unsubscribed_count,skipped_event_count,last_error",
     )
     .eq("campaign_id", campaignId)
     .maybeSingle();

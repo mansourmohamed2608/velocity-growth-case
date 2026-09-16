@@ -1,6 +1,6 @@
 begin;
 
-select plan(60);
+select plan(62);
 
 insert into auth.users (id, email)
 values
@@ -239,6 +239,29 @@ select results_eq(
     where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
   array['0:1:1'::text],
   'replaying a provider page inserts no duplicate events and keeps aggregates stable'
+);
+select results_eq(
+  $$select result.inserted_events
+    from public.campaign_sends send
+    cross join lateral public.ingest_provider_event_page(
+      send.id,
+      jsonb_build_array(
+        jsonb_build_object('event_id', 'evt-known-after-noise', 'recipient_identifier', 'CT-900001', 'event_type', 'delivered', 'occurred_at', '2026-09-15T12:15:00Z', 'raw_payload', '{}'::jsonb),
+        jsonb_build_object('event_id', 'evt-unknown-noise', 'recipient_identifier', 'CT-NOT-APPROVED', 'event_type', 'opened', 'occurred_at', '2026-09-15T12:16:00Z', 'raw_payload', '{}'::jsonb)
+      ), 'cursor-after-noise', true
+    ) result
+    where send.campaign_id = 'b1111111-1111-4111-8111-111111111111'$$,
+  array[1::integer],
+  'a noisy provider page still ingests its known event'
+);
+select ok(
+  (select skipped_event_count = 1 and provider_cursor = 'cursor-after-noise'
+   from public.campaign_sends
+   where campaign_id = 'b1111111-1111-4111-8111-111111111111')
+  and not exists (
+    select 1 from public.provider_events where provider_event_id = 'evt-unknown-noise'
+  ),
+  'an unknown provider recipient stays unbound while its skip and cursor are recorded'
 );
 select lives_ok(
   $$select public.publish_campaign_report(
