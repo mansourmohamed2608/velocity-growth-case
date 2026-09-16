@@ -89,6 +89,28 @@ test("largest production tenant can load campaign metrics and an exact send prev
   await expect(page.getByRole("button", { name: /Approve .* recipients/ })).toBeVisible();
 });
 
+test("approved production send is inspectable and cannot be dispatched again", async ({
+  page,
+}, testInfo) => {
+  const baseUrl = String(testInfo.project.use.baseURL ?? "");
+  test.skip(
+    testInfo.project.name !== "desktop" || !baseUrl.startsWith("https://"),
+    "The completed-send audit runs once against production.",
+  );
+  const owner = (await credentials()).accounts.find(
+    (account) => account.brandCode === "MARRAKECH" && account.role === "owner",
+  )!;
+  await signIn(page, owner.email, owner.password);
+  await page.getByRole("link", { name: "Campaigns", exact: true }).click();
+  const campaignRow = page.getByRole("row").filter({ hasText: "MAR-0002" });
+  await campaignRow.getByRole("link", { name: "View submitted" }).click();
+  await expect(page.getByText("MAR-0002 · sms · All countries")).toBeVisible();
+  await expect(page.getByText("Frozen recipients").locator("..")).toContainText("449");
+  await expect(page.getByText("Provider accepted").locator("..")).toContainText("449");
+  await expect(page.getByText("1 unbound provider event was skipped safely.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Dispatch approved audience" })).toHaveCount(0);
+});
+
 test("authenticated portal remains contained at a phone viewport", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "phone", "Phone layout runs only in the phone project.");
   const owner = (await credentials()).accounts.find(

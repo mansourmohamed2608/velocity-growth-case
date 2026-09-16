@@ -28,7 +28,7 @@
 
 ## D-007 — Events are facts, aggregates are projections
 
-**Decision:** Persist raw provider events uniquely by provider event ID. Recompute monotonic recipient facts from the complete event set rather than trusting arrival order. The provider docs promise ordered exactly-once reports, but the employer will deliberately test duplicates and out-of-order delivery.
+**Decision:** Persist bound provider events uniquely by provider event ID. Recompute monotonic recipient facts from the complete event set rather than trusting arrival order. Poll one cursor page per web action. If a provider page contains an identifier outside the frozen audience, leave that event unbound, advance the cursor, and record a visible skip count instead of attaching it or rejecting the page. The provider docs promise ordered exactly-once reports, but validation covers duplicates, out-of-order delivery, transient failures, and unrelated recipient noise.
 
 ## D-008 — Public reports use capability plus limited session
 
@@ -36,7 +36,7 @@
 
 ## D-009 — No real messages in automated validation
 
-**Decision:** Provider requests use an injectable transport in tests. Production dispatch is enabled only after audience and idempotency verification. The employer provider has no documented sandbox.
+**Decision:** Provider requests use an injectable transport in tests, and automated validation never dispatches. Production dispatch is enabled only after audience and idempotency verification plus explicit human approval. The employer provider has no documented sandbox; the one approved MAR-0002 production dispatch reused its immutable send UUID and recorded exactly one attempt.
 
 ## D-010 — High-volume reads resolve the tenant before aggregation
 

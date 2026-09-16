@@ -68,19 +68,19 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 
 ## Verification, deployment, and submission
 
-- [x] PASS — Format, lint, typecheck, unit, database, RLS, integration, and E2E checks pass.
+- [x] PASS — Format, lint, typecheck, 14 unit tests, 79 database/RLS assertions, integration, and E2E checks pass.
 - [x] PASS — Fresh local migration/reset and two imports reproduce stable counts.
 - [x] PASS — Secret scan covers working tree, Git history, and browser bundle; final rerun remains in the command gate.
 - [x] PASS — Meaningful commit history pushed to the existing public GitHub repository.
 - [x] PASS — Migrations/functions/data deployed and independently verified on hosted project `phtafctxyabkvqlcsulz`.
 - [x] PASS — Production app deployed with the exact Supabase Site URL/callback allow-list and existing Google provider.
 - [x] PASS — Production smoke and direct restricted-user Supabase isolation tests pass.
-- [ ] TODO — `schema.sql`, `README.md`, `SUBMISSION.md`, and private credentials exist; two candidate availability fields await confirmation.
+- [x] PASS — `schema.sql`, `README.md`, `SUBMISSION.md`, private credentials, and candidate availability fields are complete.
 - [x] PASS — Employer-requested note is under 300 words and answers all four questions.
-- [ ] TODO — Final requirement and security audits pass with a clean pushed worktree.
+- [x] PASS — Final requirement, dependency, secret, browser-network, production, and security audits pass; the final documentation commit is pushed from a clean worktree.
 
 ## Human-gated completion
 
 - [x] PASS — Candidate completed a production Google consent/login with the permitted Google identity.
-- [ ] TODO — Candidate explicitly approves one real provider dispatch; no sandbox is documented, so automation will not create the side effect without approval.
-- [ ] TODO — Candidate confirms earliest start date and notice period for the submission email.
+- [x] PASS — Candidate explicitly approved one MAR-0002 SMS dispatch for 449 recipients; it completed with one provider attempt and a fully reconciled cursor report.
+- [x] PASS — Candidate confirmed earliest start is immediately and notice period is none.

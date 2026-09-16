@@ -65,7 +65,7 @@ Contacts are database-paginated. Campaign event totals use a tenant-keyed coveri
 
 The owner first sees the exact eligible channel/country audience. Approval runs under a per-campaign advisory lock and stores one immutable recipient snapshot plus approver and timestamp. The send UUID is also the provider `Idempotency-Key`; retries reclaim the same logical send. Provider acceptance/rejection and per-recipient state live in `campaign_sends` and `campaign_send_recipients`.
 
-Reconciliation polls the documented cursor endpoint. Raw facts deduplicate by provider event ID, and projections use event time plus conservative terminal precedence so duplicate, late, replayed, or reversed events converge. Bounce, unsubscribe, and complaint facts update channel contactability.
+Reconciliation polls one bounded page from the documented cursor endpoint per owner refresh and resumes from the persisted opaque cursor. Raw facts deduplicate by provider event ID, and projections use event time plus conservative terminal precedence so duplicate, late, replayed, or reversed events converge. Bounce, unsubscribe, and complaint facts update channel contactability. Provider events that do not belong to the frozen audience remain unbound and are counted visibly instead of blocking valid facts on the same page.
 
 ## Public reports
 
@@ -85,7 +85,7 @@ npm run e2e
 npm audit --audit-level=high
 ```
 
-The completed checks include 14 unit tests, 77 database/RLS assertions, concurrent two-session approval verification, clean migration replay, two stable full imports, six-account role checks, and desktop/390px browser coverage locally and in production.
+The completed checks include 14 unit tests, 79 database/RLS assertions, concurrent two-session approval verification, clean migration replay, two stable full imports, six-account role checks, and desktop/390px browser coverage locally and in production. The production suite also verifies that the completed approved send is inspectable and has no second-dispatch control.
 
 ## Deployment
 
@@ -93,7 +93,8 @@ Hosted migrations and seed data are deployed to Supabase project `phtafctxyabkvq
 
 ## Known limitations
 
-- The provider documents no sandbox. Automated tests use an injected transport and never make a real send; production dispatch requires an explicit owner confirmation because it may affect real inboxes and cost.
+- The provider documents no sandbox. Automated tests use an injected transport and never make a real send. One explicitly approved production SMS dispatch was completed for MAR-0002; its immutable attempt, acceptance, reconciliation, and skipped-noise counts remain inspectable by the owner.
+- Provider report requests can return transient availability errors. Reconciliation is cursor-based, bounded to one page per web request, retryable, and preserves already-ingested facts.
 - Google OAuth initiation, callback configuration, consent, and the permitted Kilele owner login have been verified in production.
 - The source campaign exports intentionally contain inconsistent reported totals; the UI labels them separately from event-derived facts.
 

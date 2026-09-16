@@ -24,14 +24,16 @@ The deployed app uses only the publishable key. The Vercel server runtime separa
 
 Send progress is visible to the owner at `/portal/campaigns/{campaign-id}/send`. Database detail is in `campaign_sends` (approval, attempts, provider batch/cursor, counts, safe errors) and `campaign_send_recipients` (immutable approved destination and per-recipient status). Raw reconciled provider facts are in `provider_events`.
 
+The explicitly approved MAR-0002 SMS send completed with one dispatch attempt: 449 frozen recipients, 449 provider-accepted, 0 rejected, 423 delivered, 120 opened, 26 bounced, and 17 unsubscribed at final reconciliation. One provider event outside the frozen audience was left unbound and counted rather than attached to a customer. The owner view exposes the reconciled totals and no longer offers a dispatch action.
+
 One Kilele campaign report has been published and verified from a fresh anonymous browser. Its capability URL and separate password are in the private submission material rather than public Git history.
 
 ## Candidate and tooling
 
 - AI tools: OpenAI Codex
 - Engineering time: approximately one focused workday, plus environment and production-deployment verification
-- Earliest start date: **[candidate to confirm]**
-- Notice period: **[candidate to confirm]**
+- Earliest start date: **Immediately**
+- Notice period: **None**
 
 ## Required note (under 300 words)
 
@@ -41,4 +43,4 @@ The central data-isolation predicate is `private.is_brand_member` in `supabase/m
 
 The number I am least certain about is **Contactable now**. Its calculation is deterministic and tested, but “contactable” is a business interpretation of consent, lifecycle status, suppression, address validity, and terminal provider facts. A different policy choice could legitimately produce another number. Reported campaign totals are also inconsistent in the supplied export, so the UI keeps reported and event-derived values separate.
 
-Unfinished: no real provider send has been triggered because the provider has no documented sandbox and a send may affect real inboxes/cost. Earliest start date and notice period still require candidate confirmation.
+Unfinished: no mandatory build or submission item remains. Provider delivery facts are inherently external, but the approved batch reached the end of its cursor report and the portal can safely resume incremental reconciliation if later facts become available.

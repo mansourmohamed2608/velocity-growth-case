@@ -47,7 +47,7 @@ Database functions return tenant-scoped aggregates and bounded pages. Contacts n
 
 ## Provider events
 
-A trusted reconciler polls `/v1/messages/{batch_id}/events` with the last cursor until `has_more` is false. Raw events are inserted idempotently. Recipient and contact state is projected from all facts using event time plus terminal-state precedence, so duplicates and order do not change the result.
+A trusted reconciler requests one bounded `/v1/messages/{batch_id}/events` page from the persisted cursor per web action. The owner can continue while `has_more` is true, so a provider slowdown cannot hold one server request open indefinitely. Raw events are inserted idempotently. Recipient and contact state is projected from all bound facts using event time plus terminal-state precedence, so duplicates and order do not change the result. Events whose recipient is outside the frozen audience are never attached to a customer; they advance the cursor and increment a visible skipped-event audit count.
 
 ## Public report
 
