@@ -1,0 +1,15 @@
+.git
+.next
+.task
+.work
+.env
+.env.*
+!.env.example
+.vercel
+node_modules
+coverage
+SUBMISSION_PRIVATE.md
+supabase/.branches
+supabase/.temp
+tsconfig.tsbuildinfo
+*.log
