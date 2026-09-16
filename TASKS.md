@@ -15,7 +15,7 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 - [x] PASS — Public, responsive production web application at `https://velocity-growth-case.vercel.app`.
 - [x] PASS — All three brands live: Kilele Rides, Karoo Coaches, Marrakech Express.
 - [x] PASS — Six authorized production accounts: one owner and one analyst per brand.
-- [ ] TODO — Email/password works for all six local accounts; Google sign-in still needs a production browser check.
+- [x] PASS — Email/password works for all six production accounts; Google sign-in was verified in production with the permitted Kilele owner.
 - [x] PASS — Unauthorized authenticated identities get no tenant access (direct RLS and context-RPC regression tests).
 - [x] PASS — Idempotently import all valid contacts, campaigns, events, send-log rows, and the Kilele delta.
 - [x] PASS — Invalid rows and actionable reasons persist and are visible in the dashboard’s source-health panel.
@@ -81,6 +81,6 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 
 ## Human-gated completion
 
-- [ ] TODO — Candidate completes one production Google consent/login with the permitted Google identity.
+- [x] PASS — Candidate completed a production Google consent/login with the permitted Google identity.
 - [ ] TODO — Candidate explicitly approves one real provider dispatch; no sandbox is documented, so automation will not create the side effect without approval.
 - [ ] TODO — Candidate confirms earliest start date and notice period for the submission email.

@@ -8,7 +8,7 @@
 - Supabase project ref: `phtafctxyabkvqlcsulz`
 - Client key type: modern Supabase **publishable** key (RLS-protected; no secret/service-role key is deployed to the browser)
 - Publishable key: `sb_publishable_X8YKm4CmjEqpkcY_K7YXEg_U9Ku5vP6`
-- Google sign-in: live provider and production OAuth handoff verified; final candidate-account consent is an interactive check
+- Google sign-in: live and production-verified with the permitted candidate-controlled Kilele owner account
 
 The six email/password credentials, provider key, public-report URL, and report password are deliberately kept out of this public repository and are ready in `SUBMISSION_PRIVATE.md` for the submission email.
 
@@ -41,4 +41,4 @@ The central data-isolation predicate is `private.is_brand_member` in `supabase/m
 
 The number I am least certain about is **Contactable now**. Its calculation is deterministic and tested, but “contactable” is a business interpretation of consent, lifecycle status, suppression, address validity, and terminal provider facts. A different policy choice could legitimately produce another number. Reported campaign totals are also inconsistent in the supplied export, so the UI keeps reported and event-derived values separate.
 
-Unfinished: no real provider send has been triggered because the provider has no documented sandbox and a send may affect real inboxes/cost. Production Google OAuth reaches Google's configured authorization flow, but final consent with the candidate-controlled Google account requires an interactive browser check. Earliest start date and notice period still require candidate confirmation.
+Unfinished: no real provider send has been triggered because the provider has no documented sandbox and a send may affect real inboxes/cost. Earliest start date and notice period still require candidate confirmation.

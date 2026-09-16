@@ -52,7 +52,7 @@ Date: 16 Sep 2026
 - Local clean reset, 77 database/RLS assertions, two stable imports, concurrency checks, build, and browser suites pass.
 - Hosted Supabase migrations/data and six role accounts are deployed and verified.
 - Production is live at `https://velocity-growth-case.vercel.app`.
-- Supabase Site URL and redirect allow-list target production; the Google OAuth handoff reaches Google's configured authorization flow.
+- Supabase Site URL and redirect allow-list target production; Google OAuth consent and the permitted Kilele owner login pass in production.
 - Production email/password role matrix, largest-tenant queries/send preview, phone layout, direct unknown-user isolation, and public report password checks pass.
 - Git history is pushed to the existing public repository.
 
@@ -64,6 +64,5 @@ Date: 16 Sep 2026
 
 ## Human-gated final actions
 
-- Complete one Google consent/login using the permitted candidate-controlled account.
 - Explicitly approve or decline one real provider dispatch; no sandbox is documented.
 - Confirm earliest start date and notice period for the submission email.

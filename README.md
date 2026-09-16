@@ -94,7 +94,7 @@ Hosted migrations and seed data are deployed to Supabase project `phtafctxyabkvq
 ## Known limitations
 
 - The provider documents no sandbox. Automated tests use an injected transport and never make a real send; production dispatch requires an explicit owner confirmation because it may affect real inboxes and cost.
-- Google OAuth initiation and its production callback configuration are automated and verified. Completing Google consent requires the candidate-controlled browser account.
+- Google OAuth initiation, callback configuration, consent, and the permitted Kilele owner login have been verified in production.
 - The source campaign exports intentionally contain inconsistent reported totals; the UI labels them separately from event-derived facts.
 
 ## AI tooling disclosure
