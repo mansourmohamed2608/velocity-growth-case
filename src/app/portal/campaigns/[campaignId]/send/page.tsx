@@ -26,7 +26,7 @@ export default async function SendPage({
   searchParams,
 }: {
   params: Promise<{ campaignId: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; more?: string }>;
 }) {
   const context = await requirePortalContext();
   if (context.role !== "owner") {
@@ -136,12 +136,15 @@ export default async function SendPage({
                   {integer.format(data.send.bounced_count)} bounced ·{" "}
                   {integer.format(data.send.unsubscribed_count)} unsubscribed
                 </span>
+                {query.more === "1" ? (
+                  <small>More provider events are available. Refresh again to continue.</small>
+                ) : null}
               </div>
               <form action={reconcileSend}>
                 <input name="campaignId" type="hidden" value={data.campaign.id} />
                 <input name="sendId" type="hidden" value={data.send.id} />
                 <SubmitButton className="button button-quiet" pendingLabel="Refreshing results…">
-                  Refresh provider results
+                  {query.more === "1" ? "Continue provider refresh" : "Refresh provider results"}
                 </SubmitButton>
               </form>
             </section>

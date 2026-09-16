@@ -101,22 +101,20 @@ export async function reconcileSend(formData: FormData) {
   if (sendResult.error || !sendResult.data.provider_batch_id)
     throw new Error("This send has no provider batch to refresh.");
 
-  let cursor = sendResult.data.provider_cursor as string | null;
+  const cursor = sendResult.data.provider_cursor as string | null;
+  let hasMore = false;
   try {
-    for (let pageNumber = 0; pageNumber < 200; pageNumber += 1) {
-      const page = await fetchClaimedEventPage(sendResult.data.provider_batch_id, cursor);
-      const ingestResult = await supabase.rpc("ingest_provider_event_page", {
-        target_send_id: parsed.data.sendId,
-        event_page: page.events,
-        target_next_cursor: page.nextCursor,
-        target_has_more: page.hasMore,
-      });
-      if (ingestResult.error) throw new Error("A provider event page could not be stored safely.");
-      cursor = page.nextCursor ?? page.events.at(-1)?.event_id ?? cursor;
-      if (!page.hasMore) break;
-      if (!page.nextCursor) throw new Error("Provider returned another page without a cursor.");
-      if (pageNumber === 199) throw new Error("Provider report exceeded the safe page limit.");
-    }
+    const page = await fetchClaimedEventPage(sendResult.data.provider_batch_id, cursor);
+    const ingestResult = await supabase.rpc("ingest_provider_event_page", {
+      target_send_id: parsed.data.sendId,
+      event_page: page.events,
+      target_next_cursor: page.nextCursor,
+      target_has_more: page.hasMore,
+    });
+    if (ingestResult.error) throw new Error("A provider event page could not be stored safely.");
+    if (page.hasMore && !page.nextCursor)
+      throw new Error("Provider returned another page without a cursor.");
+    hasMore = page.hasMore;
   } catch (error) {
     const safeError =
       error instanceof Error && error.message.startsWith("Provider report request failed with HTTP")
@@ -129,5 +127,7 @@ export async function reconcileSend(formData: FormData) {
     throw new Error(safeError);
   }
 
-  redirect(`/portal/campaigns/${parsed.data.campaignId}/send?reconciled=1`);
+  redirect(
+    `/portal/campaigns/${parsed.data.campaignId}/send?reconciled=1${hasMore ? "&more=1" : ""}`,
+  );
 }
