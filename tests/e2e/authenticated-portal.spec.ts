@@ -41,7 +41,14 @@ test("owner can navigate bounded data and preview a send without dispatching", a
     (account) => account.brandCode === "KAROO" && account.role === "owner",
   )!;
   await signIn(page, owner.email, owner.password);
+  await expect(page.getByRole("link", { name: "Skip to main content" })).toHaveCount(1);
   await expect(page.getByText("Total customers")).toBeVisible();
+  const dailyValues = page.getByText("View exact daily values");
+  await expect(dailyValues).toBeVisible();
+  await dailyValues.click();
+  await expect(
+    page.getByRole("region", { name: "Exact daily signup values" }).getByRole("row"),
+  ).toHaveCount(31);
 
   await page.getByRole("link", { name: "Contacts" }).click();
   await expect(page.getByRole("heading", { name: "Contacts" })).toBeVisible();

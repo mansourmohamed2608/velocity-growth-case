@@ -12,6 +12,12 @@ const shortDate = new Intl.DateTimeFormat("en", {
   month: "short",
   timeZone: "UTC",
 });
+const dateForTable = new Intl.DateTimeFormat("en", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
 
 function SignupChart({
   points,
@@ -42,6 +48,31 @@ function SignupChart({
         <strong>Peak {integer.format(maximum)}</strong>
         <span>{shortDate.format(new Date(`${points.at(-1)!.signup_date}T00:00:00Z`))}</span>
       </figcaption>
+      <details className="chart-data-details">
+        <summary>View exact daily values</summary>
+        <div aria-label="Exact daily signup values" className="chart-data-table" role="region">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Signups</th>
+              </tr>
+            </thead>
+            <tbody>
+              {points.map((point) => (
+                <tr key={point.signup_date}>
+                  <td>
+                    <time dateTime={point.signup_date}>
+                      {dateForTable.format(new Date(`${point.signup_date}T00:00:00Z`))}
+                    </time>
+                  </td>
+                  <td>{integer.format(point.signup_count)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
     </figure>
   );
 }

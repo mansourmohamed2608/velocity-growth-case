@@ -11,6 +11,9 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="portal-shell">
+      <a className="skip-link" href="#portal-content">
+        Skip to main content
+      </a>
       <header className="portal-header">
         <Link className="wordmark" href="/portal">
           <span aria-hidden="true" className="wordmark-mark">
@@ -35,7 +38,9 @@ export default async function PortalLayout({ children }: { children: React.React
           <span>{context.userEmail}</span>
         </div>
       </div>
-      {children}
+      <div id="portal-content" tabIndex={-1}>
+        {children}
+      </div>
     </div>
   );
 }

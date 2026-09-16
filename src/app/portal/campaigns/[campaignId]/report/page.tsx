@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CopyButton } from "@/components/client-actions";
 import { SubmitButton } from "@/components/submit-button";
 import { requirePortalContext } from "@/lib/portal-context";
 import { reportTokenPattern } from "@/lib/public-report";
@@ -74,9 +75,17 @@ export default async function PublishReportPage({
             Relay stores only its SHA-256 digest, so the raw link cannot be recovered after you
             leave this page. Share the password separately.
           </p>
-          <input aria-label="Public report URL" readOnly value={shareUrl} />
-          <a className="button button-primary" href={shareUrl} rel="noreferrer" target="_blank">
-            Open report
+          <div className="share-link-control">
+            <input aria-label="Public report URL" readOnly value={shareUrl} />
+            <CopyButton value={shareUrl} />
+          </div>
+          <a
+            className="button button-quiet share-open-link"
+            href={shareUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Open report in new tab
           </a>
         </section>
       ) : null}

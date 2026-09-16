@@ -71,6 +71,8 @@ Reconciliation polls one bounded page from the documented cursor endpoint per ow
 
 Owners publish one explicitly bound campaign using a random 256-bit token. Only its SHA-256 digest is stored. Passwords use bcrypt cost 12 inside PostgreSQL. Successful verification creates a separate one-hour, path-bound HTTP-only report session; anonymous users receive only one purpose-built aggregate RPC and no tenant-table grants.
 
+The publication screen provides one-click copy feedback while the raw link is available. The client-facing result view is keyboard-navigable and has a print stylesheet plus an explicit **Print or save PDF** action for clean offline sharing.
+
 ## Verification
 
 ```bash

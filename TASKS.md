@@ -39,6 +39,7 @@ Status values are `TODO`, `PASS`, `FAIL`, and `N/A` (with justification). The em
 - [x] PASS — Campaign history/results and owner-only audience approval work; analysts see read-only controls.
 - [x] PASS — Loading, empty, query-error, and permission-denied states are explicit and do not infer zeros.
 - [x] PASS — Phone and laptop layouts pass authenticated and public browser checks at 390 px and 1440 px.
+- [x] PASS — UX bonus pass adds keyboard skip navigation, an exact accessible signup-data table, one-click report-link copying, and print/PDF-ready public reports.
 
 ## Safe sending
 
