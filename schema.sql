@@ -149,6 +149,21 @@ CREATE TYPE "public"."send_status" AS ENUM (
 ALTER TYPE "public"."send_status" OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "private"."current_brand_id"() RETURNS "uuid"
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select (
+    select membership.brand_id
+    from public.brand_memberships membership
+    where membership.user_id = (select auth.uid())
+  );
+$$;
+
+
+ALTER FUNCTION "private"."current_brand_id"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "private"."is_brand_member"("target_brand_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
@@ -503,6 +518,74 @@ CREATE OR REPLACE FUNCTION "public"."ingest_provider_event_page"("target_send_id
     AS $$
 declare
   selected_send public.campaign_sends%rowtype;
+  filtered_page jsonb;
+  skipped_total integer;
+begin
+  if event_page is null or jsonb_typeof(event_page) <> 'array' then
+    raise exception 'provider event page must be an array' using errcode = '22023';
+  end if;
+
+  select * into selected_send
+  from public.campaign_sends campaign_send
+  where campaign_send.id = target_send_id;
+
+  if not found or not private.is_brand_owner(selected_send.brand_id) then
+    raise exception 'owner role required' using errcode = '42501';
+  end if;
+
+  with classified as (
+    select
+      item.value,
+      item.position,
+      exists (
+        select 1
+        from public.campaign_send_recipients recipient
+        where recipient.send_id = selected_send.id
+          and (
+            recipient.contact_external_id = item.value->>'recipient_identifier'
+            or recipient.destination = item.value->>'recipient_identifier'
+          )
+      ) as is_known
+    from jsonb_array_elements(event_page) with ordinality item(value, position)
+  )
+  select
+    coalesce(jsonb_agg(classified.value order by classified.position)
+      filter (where classified.is_known), '[]'::jsonb),
+    count(*) filter (where not classified.is_known)::integer
+  into filtered_page, skipped_total
+  from classified;
+
+  return query
+  select *
+  from public.ingest_provider_event_page_strict(
+    target_send_id,
+    filtered_page,
+    target_next_cursor,
+    target_has_more
+  );
+
+  if skipped_total > 0 then
+    update public.campaign_sends campaign_send
+    set skipped_event_count = campaign_send.skipped_event_count + skipped_total,
+        last_error = skipped_total || case when skipped_total = 1
+          then ' provider event referenced an unknown recipient and was skipped.'
+          else ' provider events referenced unknown recipients and were skipped.'
+        end
+    where campaign_send.id = selected_send.id;
+  end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."ingest_provider_event_page"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."ingest_provider_event_page_strict"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) RETURNS TABLE("inserted_events" integer, "provider_cursor" "text", "delivered_count" integer, "opened_count" integer, "bounced_count" integer, "unsubscribed_count" integer)
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+declare
+  selected_send public.campaign_sends%rowtype;
   unknown_recipients integer;
   inserted_total integer;
   last_page_event_id text;
@@ -721,13 +804,32 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."ingest_provider_event_page"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) OWNER TO "postgres";
+ALTER FUNCTION "public"."ingest_provider_event_page_strict"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."portal_campaign_performance"("result_limit" integer DEFAULT 100) RETURNS TABLE("id" "uuid", "external_id" "text", "name" "text", "channel" "public"."message_channel", "sent_at" timestamp with time zone, "reported_sent" bigint, "reported_delivered" bigint, "reported_bounced" bigint, "reported_opens" bigint, "reported_clicks" bigint, "spend" numeric, "event_delivered" bigint, "event_bounced" bigint, "event_opened" bigint, "event_clicked" bigint, "event_unsubscribed" bigint, "event_complained" bigint, "send_status" "public"."send_status", "send_recipient_count" integer)
-    LANGUAGE "sql" STABLE
+    LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
+  with tenant as (
+    select private.current_brand_id() as brand_id
+  ), unique_events as (
+    select distinct event.campaign_id, event.event_type, event.contact_id
+    from public.provider_events event
+    cross join tenant
+    where event.brand_id = tenant.brand_id
+  ), event_totals as (
+    select
+      event.campaign_id,
+      count(*) filter (where event.event_type = 'delivered')::bigint as delivered,
+      count(*) filter (where event.event_type = 'bounced')::bigint as bounced,
+      count(*) filter (where event.event_type = 'opened')::bigint as opened,
+      count(*) filter (where event.event_type = 'clicked')::bigint as clicked,
+      count(*) filter (where event.event_type = 'unsubscribed')::bigint as unsubscribed,
+      count(*) filter (where event.event_type = 'complained')::bigint as complained
+    from unique_events event
+    group by event.campaign_id
+  )
   select
     campaign.id,
     campaign.external_id,
@@ -749,18 +851,12 @@ CREATE OR REPLACE FUNCTION "public"."portal_campaign_performance"("result_limit"
     send.status,
     send.recipient_count
   from public.campaigns campaign
-  left join lateral (
-    select
-      count(distinct event.contact_id) filter (where event.event_type = 'delivered') delivered,
-      count(distinct event.contact_id) filter (where event.event_type = 'bounced') bounced,
-      count(distinct event.contact_id) filter (where event.event_type = 'opened') opened,
-      count(distinct event.contact_id) filter (where event.event_type = 'clicked') clicked,
-      count(distinct event.contact_id) filter (where event.event_type = 'unsubscribed') unsubscribed,
-      count(distinct event.contact_id) filter (where event.event_type = 'complained') complained
-    from public.provider_events event
-    where event.campaign_id = campaign.id
-  ) event_totals on true
-  left join public.campaign_sends send on send.campaign_id = campaign.id
+  cross join tenant
+  left join event_totals on event_totals.campaign_id = campaign.id
+  left join public.campaign_sends send
+    on send.brand_id = tenant.brand_id
+   and send.campaign_id = campaign.id
+  where campaign.brand_id = tenant.brand_id
   order by campaign.sent_at desc, campaign.id
   limit greatest(1, least(coalesce(result_limit, 100), 100));
 $$;
@@ -775,10 +871,13 @@ CREATE OR REPLACE FUNCTION "public"."portal_contacts_count"("search_text" "text"
     AS $$
   select count(*)::bigint
   from public.contacts contact
-  where nullif(btrim(search_text), '') is null
-    or contact.external_id ilike '%' || btrim(search_text) || '%'
-    or contact.full_name ilike '%' || btrim(search_text) || '%'
-    or coalesce(contact.email, '') ilike '%' || btrim(search_text) || '%';
+  where contact.brand_id = (select private.current_brand_id())
+    and (
+      nullif(btrim(search_text), '') is null
+      or contact.external_id ilike '%' || btrim(search_text) || '%'
+      or contact.full_name ilike '%' || btrim(search_text) || '%'
+      or coalesce(contact.email, '') ilike '%' || btrim(search_text) || '%'
+    );
 $$;
 
 
@@ -792,10 +891,13 @@ CREATE OR REPLACE FUNCTION "public"."portal_contacts_page"("search_text" "text" 
   with matching as (
     select contact.*
     from public.contacts contact
-    where nullif(btrim(search_text), '') is null
-      or contact.external_id ilike '%' || btrim(search_text) || '%'
-      or contact.full_name ilike '%' || btrim(search_text) || '%'
-      or coalesce(contact.email, '') ilike '%' || btrim(search_text) || '%'
+    where contact.brand_id = (select private.current_brand_id())
+      and (
+        nullif(btrim(search_text), '') is null
+        or contact.external_id ilike '%' || btrim(search_text) || '%'
+        or contact.full_name ilike '%' || btrim(search_text) || '%'
+        or coalesce(contact.email, '') ilike '%' || btrim(search_text) || '%'
+      )
   )
   select
     contact.id,
@@ -859,7 +961,8 @@ CREATE OR REPLACE FUNCTION "public"."portal_dashboard_summary"() RETURNS TABLE("
         )
     )::bigint,
     max(contact.signup_at)::date
-  from public.contacts contact;
+  from public.contacts contact
+  where contact.brand_id = (select private.current_brand_id());
 $$;
 
 
@@ -867,7 +970,7 @@ ALTER FUNCTION "public"."portal_dashboard_summary"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."portal_send_audience"("target_campaign_id" "uuid", "page_size" integer DEFAULT 25, "page_offset" integer DEFAULT 0) RETURNS TABLE("contact_id" "uuid", "external_id" "text", "full_name" "text", "destination" "text", "country_code" "text", "total_count" bigint)
-    LANGUAGE "plpgsql" STABLE
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 declare
@@ -915,7 +1018,7 @@ ALTER FUNCTION "public"."portal_send_audience"("target_campaign_id" "uuid", "pag
 
 
 CREATE OR REPLACE FUNCTION "public"."portal_send_audience_count"("target_campaign_id" "uuid") RETURNS bigint
-    LANGUAGE "plpgsql" STABLE
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
 declare
@@ -962,6 +1065,7 @@ CREATE OR REPLACE FUNCTION "public"."portal_signup_series"() RETURNS TABLE("sign
   with boundary as (
     select max(contact.signup_at)::date as window_end
     from public.contacts contact
+    where contact.brand_id = (select private.current_brand_id())
   ), days as (
     select day::date as signup_date, boundary.window_end
     from boundary
@@ -975,7 +1079,8 @@ CREATE OR REPLACE FUNCTION "public"."portal_signup_series"() RETURNS TABLE("sign
     select contact.signup_at::date as signup_date, count(*)::bigint as signup_count
     from public.contacts contact
     cross join boundary
-    where contact.signup_at >= boundary.window_end - 29
+    where contact.brand_id = (select private.current_brand_id())
+      and contact.signup_at >= boundary.window_end - 29
       and contact.signup_at < boundary.window_end + 1
     group by contact.signup_at::date
   )
@@ -1409,6 +1514,7 @@ CREATE TABLE IF NOT EXISTS "public"."campaign_sends" (
     "reconciled_at" timestamp with time zone,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "skipped_event_count" integer DEFAULT 0 NOT NULL,
     CONSTRAINT "campaign_sends_accepted_count_check" CHECK (("accepted_count" >= 0)),
     CONSTRAINT "campaign_sends_bounced_count_check" CHECK (("bounced_count" >= 0)),
     CONSTRAINT "campaign_sends_check" CHECK (((("source" = 'portal'::"public"."send_source") AND ("confirmation_key" IS NOT NULL) AND ("approved_by" IS NOT NULL) AND ("approved_at" IS NOT NULL)) OR (("source" = 'imported'::"public"."send_source") AND ("confirmation_key" IS NULL) AND ("approved_by" IS NULL)))),
@@ -1422,6 +1528,7 @@ CREATE TABLE IF NOT EXISTS "public"."campaign_sends" (
     CONSTRAINT "campaign_sends_opened_count_check" CHECK (("opened_count" >= 0)),
     CONSTRAINT "campaign_sends_recipient_count_check" CHECK (("recipient_count" >= 0)),
     CONSTRAINT "campaign_sends_rejected_count_check" CHECK (("rejected_count" >= 0)),
+    CONSTRAINT "campaign_sends_skipped_event_count_nonnegative" CHECK (("skipped_event_count" >= 0)),
     CONSTRAINT "campaign_sends_unsubscribed_count_check" CHECK (("unsubscribed_count" >= 0))
 );
 
@@ -1842,6 +1949,10 @@ CREATE INDEX "import_runs_brand_started_idx" ON "public"."import_runs" USING "bt
 
 
 
+CREATE INDEX "provider_events_brand_campaign_type_contact_idx" ON "public"."provider_events" USING "btree" ("brand_id", "campaign_id", "event_type", "contact_id");
+
+
+
 CREATE INDEX "provider_events_campaign_time_idx" ON "public"."provider_events" USING "btree" ("brand_id", "campaign_id", "occurred_at", "id");
 
 
@@ -2074,6 +2185,11 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+REVOKE ALL ON FUNCTION "private"."current_brand_id"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "private"."current_brand_id"() TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "private"."is_brand_member"("target_brand_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "private"."is_brand_member"("target_brand_id" "uuid") TO "authenticated";
 
@@ -2118,6 +2234,11 @@ GRANT ALL ON FUNCTION "public"."current_portal_context"() TO "service_role";
 REVOKE ALL ON FUNCTION "public"."ingest_provider_event_page"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."ingest_provider_event_page"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."ingest_provider_event_page"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."ingest_provider_event_page_strict"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."ingest_provider_event_page_strict"("target_send_id" "uuid", "event_page" "jsonb", "target_next_cursor" "text", "target_has_more" boolean) TO "service_role";
 
 
 
